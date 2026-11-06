@@ -1,0 +1,14 @@
+# Rust
+/target/
+**/*.rs.bk
+
+# IDE
+/.idea/
+/.vscode/
+
+# Local env and secrets
+.env
+*.local.toml
+
+# OS
+.DS_Store
