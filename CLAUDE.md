@@ -19,9 +19,11 @@ Read this before doing anything in the repository. These rules take precedence o
 - **Never commit to `main`.** `main` is protected by a repository ruleset: changes land only through pull requests; force-pushes and deletion are blocked. Do not try to bypass or edit the ruleset.
 - Work on a branch named `<type>/<short-topic>`, where `type` is `feat`, `fix`, `chore`, `docs`, or `spec`. One branch and one PR per OpenSpec task group (or per change when it is small).
 - Commit small, coherent commits with imperative subjects (`Add SQLite catalog store`). Reference the OpenSpec change and task ids in the body (`v1-read-only-engine: 4.1, 4.2`).
-- Open the PR with `gh pr create`. The body states: what changed, which tasks it completes, how it was verified (commands and results), and anything the reviewer should look at first. The project owner reviews and merges every PR; do not merge your own PRs and do not enable auto-merge.
-- Merge methods are squash or merge commit; rebase merges are disabled. Branches are deleted automatically after merge.
-- Never force-push a shared branch, never delete remote branches you did not create, never rewrite history on `main`.
+- Open the PR with `gh pr create`. The body states: what changed, which tasks it completes, how it was verified (commands and results), and anything the reviewer should look at first.
+- **Only the project owner merges**, as repository maintainer. Agents never merge PRs, never approve them, and never enable auto-merge. The ruleset enforces this: updates to `main` are allowed only through a pull request merged by a repository admin.
+- The only merge method is **rebase**: commits land on `main` linearly, one by one, so keep every commit in a PR self-contained and buildable. Squash and merge commits are disabled. Branches are deleted automatically after merge.
+- Before asking for review, rebase the branch on the current `main` (`git fetch origin && git rebase origin/main`) and force-push **your own feature branch only** (`git push --force-with-lease`).
+- Never force-push a branch you did not create, never delete remote branches you did not create, never rewrite history on `main`.
 
 ## Upstream (Apache DataFusion, Ballista, delta-rs)
 
