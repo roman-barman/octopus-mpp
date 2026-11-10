@@ -64,7 +64,7 @@ Every pull request is measured in CI (`pr-size` check) and fails when it changes
 scripts/ci/pr-size.sh origin/main
 ```
 
-The only exception is the `size/override` label, which the project owner adds after a written justification why the PR cannot be made smaller. The gate's behavior is specified in `openspec/specs/pr-size-gate/spec.md` once the change is archived.
+The only exception is the `size/override` label, which the project owner adds after a written justification why the PR cannot be made smaller. The gate's behavior is specified in [`openspec/specs/pr-size-gate/spec.md`](openspec/specs/pr-size-gate/spec.md).
 
 ## Building blocks
 
