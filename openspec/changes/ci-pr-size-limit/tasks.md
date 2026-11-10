@@ -18,7 +18,7 @@
 ## 4. Repository settings (owner)
 
 - [x] 4.1 Owner creates the label `size/override` (description: "Owner-approved exception to the PR size limit"). Verify: `gh label list` shows it.
-- [ ] 4.2 Owner adds a `required_status_checks` rule with context `pr-size` and `strict_required_status_checks_policy: false` to ruleset `protect-main` (id 26716811), after the workflow has produced its first result. Verify: `gh api repos/roman-barman/octopus-mpp/rulesets/26716811` lists the rule, and a PR with a failed `pr-size` check shows as not mergeable.
+- [x] 4.2 Owner adds a `required_status_checks` rule with context `pr-size` and `strict_required_status_checks_policy: false` to ruleset `protect-main` (id 26716811), after the workflow has produced its first result. Verify: `gh api repos/roman-barman/octopus-mpp/rulesets/26716811` lists the rule, and a PR with a failed `pr-size` check shows as not mergeable.
 
 ## Workflow follow-up
 
