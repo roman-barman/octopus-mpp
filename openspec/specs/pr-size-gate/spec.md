@@ -47,6 +47,18 @@ The gate SHALL exclude `Cargo.lock` and every path under `openspec/changes/archi
 - **WHEN** a PR moves a completed change into `openspec/changes/archive/` and updates `openspec/specs/`
 - **THEN** only the files under `openspec/specs/` and any other non-excluded paths are counted
 
+### Requirement: Moved files are measured by their destination
+The gate SHALL treat a moved or renamed file as one changed file at its destination path, with the lines changed between the source and destination contents. Exclusions SHALL apply to the destination path.
+
+#### Scenario: Change archived without edits
+- **GIVEN** a change directory under `openspec/changes/<name>/` on the target branch
+- **WHEN** a PR moves it unchanged to `openspec/changes/archive/<date>-<name>/`
+- **THEN** the moved files contribute zero files and zero lines
+
+#### Scenario: File moved out of an excluded path
+- **WHEN** a PR moves a file from `openspec/changes/archive/` to `openspec/specs/`
+- **THEN** the file counts as one changed file at its new path, with any content changes as lines
+
 ### Requirement: Override label
 The gate SHALL pass a PR that carries the `size/override` label even when a limit is exceeded, and SHALL still report the measured size and state that the override is in effect. Adding or removing the label SHALL re-run the gate.
 
