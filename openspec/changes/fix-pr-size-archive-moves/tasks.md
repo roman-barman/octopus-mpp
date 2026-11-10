@@ -7,7 +7,7 @@
 
 ## 2. Integration
 
-- [ ] 2.1 Open the PR; verify the `pr-size` check passes on it and its log shows the test scenarios passing, then record the run link in the PR body.
+- [x] 2.1 Open the PR; verify the `pr-size` check passes on it and its log shows the test scenarios passing, then record the run link in the PR body.
 
 ## Workflow follow-up
 
