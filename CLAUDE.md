@@ -24,6 +24,10 @@ Read this before doing anything in the repository. These rules take precedence o
 - The only merge method is **rebase**: commits land on `main` linearly, one by one, so keep every commit in a PR self-contained and buildable. Squash and merge commits are disabled. Branches are deleted automatically after merge.
 - Before asking for review, rebase the branch on the current `main` (`git fetch origin && git rebase origin/main`) and force-push **your own feature branch only** (`git push --force-with-lease`).
 - Never force-push a branch you did not create, never delete remote branches you did not create, never rewrite history on `main`.
+- **Pull request size limit.** CI (`.github/workflows/pr-size.yml`, job `pr-size`) fails a PR that changes more than **500 lines** (additions + deletions) or **20 files**, measured from the merge-base with `main`. Only `Cargo.lock` and `openspec/changes/archive/**` are excluded; docs and OpenSpec artifacts count. The check is required by the ruleset, so an oversized PR cannot be merged. Check locally before pushing: `scripts/ci/pr-size.sh origin/main`.
+- Plan work to fit the limit: a change's planning artifacts (proposal, specs, design, tasks) land in their own `spec/<change>` PR; implementation task groups that would exceed the limit are split into several self-contained PRs, with the split noted in each PR body.
+- **Agents never add the `size/override` label.** It is the owner's escape hatch. If a PR cannot be brought under the limit, stop before asking for review and explain to the owner, in the PR body and in chat, why it cannot be split smaller (for example, a single atomic rename or a generated file). The owner decides whether to add the label.
+- The job name `pr-size` is the required status check context. Do not rename the job or the workflow without the owner updating the ruleset first.
 
 ## Upstream (Apache DataFusion, Ballista, delta-rs)
 
