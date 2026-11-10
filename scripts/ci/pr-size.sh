@@ -38,23 +38,39 @@ max_lines="${PR_SIZE_MAX_LINES:-500}"
 max_files="${PR_SIZE_MAX_FILES:-20}"
 override="${PR_SIZE_OVERRIDE:-false}"
 
-# Paths that never count. Git pathspecs without magic match by prefix, so
-# "openspec/changes/archive" covers everything under that directory.
-excluded=(
-  ':(exclude)Cargo.lock'
-  ':(exclude)openspec/changes/archive'
-)
+# Paths that never count. Decided per entry below, by destination path, so
+# that a file moved into the archive is excluded while one moved out of it
+# is counted. A pathspec on git diff would not do: git applies pathspecs
+# before rename detection, and a move into an excluded directory would
+# then appear as a plain deletion of the source.
+is_excluded() {
+  case "$1" in
+    Cargo.lock | openspec/changes/archive/*) return 0 ;;
+    *) return 1 ;;
+  esac
+}
 
 lines=0
 files=0
-# --numstat prints "<added>\t<deleted>\t<path>" per file. Binary files print
-# "-" in both numeric columns: they count as one file and zero lines.
-while IFS=$'\t' read -r added deleted _path; do
+# `--numstat -z -M` prints one NUL-terminated record per file:
+#   "<added>\t<deleted>\t<path>"               for an ordinary change
+#   "<added>\t<deleted>\t" "<source>" "<dest>"  for a rename (three records)
+# Binary files print "-" in both numeric columns: one file, zero lines.
+# A moved file edited beyond git's similarity threshold is reported as a
+# deletion plus an addition, and both count.
+while IFS=$'\t' read -r -d '' added deleted path; do
+  if [ -z "$path" ]; then
+    read -r -d '' _source
+    read -r -d '' path
+  fi
+  if is_excluded "$path"; then
+    continue
+  fi
   files=$((files + 1))
   if [ "$added" != "-" ]; then
     lines=$((lines + added + deleted))
   fi
-done < <(git diff --numstat "$merge_base" HEAD -- . "${excluded[@]}")
+done < <(git diff --numstat -z -M "$merge_base" HEAD)
 
 echo "PR size against merge-base with ${base}:"
 echo "  changed lines: ${lines} (limit ${max_lines})"

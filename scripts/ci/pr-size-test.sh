@@ -66,6 +66,10 @@ cd "$work"
 git init -q
 git symbolic-ref HEAD refs/heads/main
 write_lines base.txt 3
+# A finished change, so scenarios can archive it the way the project does.
+write_lines openspec/changes/sample/proposal.md 20
+write_lines openspec/changes/sample/design.md 40
+write_lines openspec/changes/sample/specs/sample/spec.md 30
 commit "base"
 
 branch at-limit
@@ -134,6 +138,26 @@ commit "nested change plus lockfile"
 run_dir="sub/dir"
 check "measured from the repository root when run in a subdirectory" 0 "changed lines: 30 "
 run_dir="."
+
+branch archive-move
+mkdir -p openspec/changes/archive
+git mv openspec/changes/sample openspec/changes/archive/2026-01-01-sample
+write_lines openspec/specs/sample/spec.md 5
+commit "archive the sample change"
+check "archiving a change counts only the new spec (lines)" 0 "changed lines: 5 "
+check "archiving a change counts only the new spec (files)" 0 "changed files: 1 "
+
+branch move-out-of-archive
+mkdir -p openspec/changes/archive
+git mv openspec/changes/sample openspec/changes/archive/2026-01-01-sample
+commit "archive the sample change"
+mkdir -p openspec/specs
+git mv openspec/changes/archive/2026-01-01-sample/design.md openspec/specs/design.md
+printf 'line 1 edited\nline 2 edited\n' > openspec/specs/design.md
+seq 3 40 | sed 's/^/line /' >> openspec/specs/design.md
+commit "move a file out of the archive and edit two lines"
+check "a file moved out of the archive counts at its destination" 0 "changed files: 1 "
+check "edits in a moved file count as lines" 0 "changed lines: 4 "
 
 branch unknown-base
 write_lines a.txt 1
