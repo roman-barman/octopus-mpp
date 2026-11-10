@@ -1,0 +1,36 @@
+# Pull request size gate. See openspec/specs/pr-size-gate/spec.md.
+#
+# The job name `pr-size` is the status check context required by the
+# `protect-main` ruleset. Renaming it also requires updating the ruleset.
+name: pr-size
+
+on:
+  pull_request:
+    # labeled/unlabeled re-run the gate when the owner toggles size/override.
+    types: [opened, synchronize, reopened, labeled, unlabeled]
+
+permissions:
+  contents: read
+
+jobs:
+  pr-size:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the pull request head
+        uses: actions/checkout@v4
+        with:
+          # The PR head itself, not the synthetic merge commit, so the diff
+          # against the base contains only the PR's own changes.
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+
+      - name: Fetch the base branch
+        run: git fetch --no-tags origin "+refs/heads/${{ github.base_ref }}:refs/remotes/origin/${{ github.base_ref }}"
+
+      - name: Test the gate script
+        run: scripts/ci/pr-size-test.sh
+
+      - name: Measure the pull request
+        env:
+          PR_SIZE_OVERRIDE: ${{ contains(github.event.pull_request.labels.*.name, 'size/override') }}
+        run: scripts/ci/pr-size.sh "origin/${{ github.base_ref }}"
