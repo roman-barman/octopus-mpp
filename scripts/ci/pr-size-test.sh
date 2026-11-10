@@ -97,6 +97,11 @@ write_lines a.txt 501
 commit "501 lines with override"
 check "override passes with notice" 0 "size/override label is set" PR_SIZE_OVERRIDE=true
 
+branch override-under-limit
+write_lines a.txt 10
+commit "10 lines with override"
+check "override is reported even under the limit" 0 "override: size/override label is set" PR_SIZE_OVERRIDE=true
+
 branch base-moved
 write_lines a.txt 10
 commit "small change"

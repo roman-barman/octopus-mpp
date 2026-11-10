@@ -48,6 +48,9 @@ echo "PR size against merge-base with ${base}:"
 echo "  changed lines: ${lines} (limit ${max_lines})"
 echo "  changed files: ${files} (limit ${max_files})"
 echo "  excluded: Cargo.lock, openspec/changes/archive/**"
+if [ "$override" = "true" ]; then
+  echo "  override: size/override label is set"
+fi
 
 over=""
 if [ "$lines" -gt "$max_lines" ]; then
