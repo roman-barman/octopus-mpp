@@ -14,7 +14,8 @@
 #   PR_SIZE_OVERRIDE    "true" when the PR carries the size/override label;
 #                       the measurement is still printed but the exit code is 0
 #
-# Exit code: 0 within limits or overridden, 1 over a limit, 2 usage error.
+# Exit code: 0 within limits or overridden, 1 over a limit, 2 usage error
+# (including a base ref that cannot be resolved).
 set -euo pipefail
 
 if [ $# -ne 1 ]; then
@@ -22,6 +23,17 @@ if [ $# -ne 1 ]; then
   exit 2
 fi
 base="$1"
+
+# Pathspecs are relative to the current directory, so always measure from
+# the repository root; the documented command then works from anywhere.
+cd "$(git rev-parse --show-toplevel)"
+
+# Resolve the merge-base up front. A failure inside the process substitution
+# below would not stop the script and would report an empty diff as a pass.
+if ! merge_base="$(git merge-base "$base" HEAD 2>/dev/null)"; then
+  echo "error: cannot find the merge-base of '${base}' and HEAD; is the base ref fetched?" >&2
+  exit 2
+fi
 max_lines="${PR_SIZE_MAX_LINES:-500}"
 max_files="${PR_SIZE_MAX_FILES:-20}"
 override="${PR_SIZE_OVERRIDE:-false}"
@@ -42,7 +54,7 @@ while IFS=$'\t' read -r added deleted _path; do
   if [ "$added" != "-" ]; then
     lines=$((lines + added + deleted))
   fi
-done < <(git diff --numstat "${base}...HEAD" -- . "${excluded[@]}")
+done < <(git diff --numstat "$merge_base" HEAD -- . "${excluded[@]}")
 
 echo "PR size against merge-base with ${base}:"
 echo "  changed lines: ${lines} (limit ${max_lines})"

@@ -35,7 +35,7 @@ The three-dot form diffs from the merge-base, so unrelated commits on `main` are
 *Why:* git already does the work; the script only sums columns. The alternative of counting via the GitHub API cannot apply exclusions.
 
 ### D3. Checkout the PR head, not the merge ref
-The workflow checks out `github.event.pull_request.head.sha` with `fetch-depth: 0` and fetches `origin/<base_ref>`. The default `pull_request` checkout is a synthetic merge commit, whose diff against the base would include the merge itself and can hide conflicts.
+The workflow checks out `github.event.pull_request.head.sha` with `fetch-depth: 0`, which also brings every branch including `origin/<base_ref>`. The default `pull_request` checkout is a synthetic merge of the PR into the current base tip; measuring it would make the result depend on the state of `main` at run time (conflict resolution, in particular) rather than on what the author pushed.
 
 ### D4. Override is a label, evaluated by the workflow and passed to the script
 The workflow triggers on `pull_request` types `opened, synchronize, reopened, labeled, unlabeled` and sets `PR_SIZE_OVERRIDE` from `contains(github.event.pull_request.labels.*.name, 'size/override')`. The script, when the override is set and a limit is exceeded, prints the measurements with an explicit override notice and exits 0.

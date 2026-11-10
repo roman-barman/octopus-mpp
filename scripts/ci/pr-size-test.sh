@@ -14,6 +14,9 @@ trap 'rm -rf "$work"' EXIT
 
 export GIT_AUTHOR_NAME="pr-size-test" GIT_AUTHOR_EMAIL="pr-size-test@example.invalid"
 export GIT_COMMITTER_NAME="$GIT_AUTHOR_NAME" GIT_COMMITTER_EMAIL="$GIT_AUTHOR_EMAIL"
+# Hide the developer's own git configuration (commit signing, hooks,
+# templates) so the throwaway repository behaves the same everywhere.
+export HOME="$work" XDG_CONFIG_HOME="$work/.config" GIT_CONFIG_NOSYSTEM=1
 
 failures=0
 
@@ -24,16 +27,24 @@ write_lines() {
 }
 
 # check <scenario> <expected-exit> <expected-substring> [env=value ...]
-# Runs the gate on the current branch against main and reports one line.
+# Runs the gate on the current branch against main, from the directory in
+# $run_dir (default: the repository root), and reports one line.
+run_dir="."
 check() {
   local name="$1" want_exit="$2" want_text="$3"
   shift 3
-  local output got_exit=0
-  output="$(env "$@" "$gate" main 2>&1)" || got_exit=$?
-  if [ "$got_exit" -eq "$want_exit" ] && [[ "$output" == *"$want_text"* ]]; then
+  local output got_exit=0 problems=""
+  output="$(cd "$run_dir" && env "$@" "$gate" main 2>&1)" || got_exit=$?
+  if [ "$got_exit" -ne "$want_exit" ]; then
+    problems="exit $got_exit (want $want_exit)"
+  fi
+  if [[ "$output" != *"$want_text"* ]]; then
+    problems="${problems:+$problems, }missing text '$want_text'"
+  fi
+  if [ -z "$problems" ]; then
     echo "PASS  $name"
   else
-    echo "FAIL  $name: exit $got_exit (want $want_exit), missing text '$want_text'"
+    echo "FAIL  $name: $problems"
     printf '      %s\n' "${output//$'\n'/$'\n      '}"
     failures=$((failures + 1))
   fi
@@ -115,6 +126,26 @@ branch custom-limits
 write_lines a.txt 50
 commit "50 lines"
 check "limits come from the environment" 1 "lines 50 exceed the limit of 40" PR_SIZE_MAX_LINES=40
+
+branch from-subdirectory
+write_lines sub/dir/a.txt 30
+write_lines Cargo.lock 100
+commit "nested change plus lockfile"
+run_dir="sub/dir"
+check "measured from the repository root when run in a subdirectory" 0 "changed lines: 30 "
+run_dir="."
+
+branch unknown-base
+write_lines a.txt 1
+commit "one line"
+check_output="$("$gate" no-such-branch 2>&1)" && check_exit=0 || check_exit=$?
+if [ "$check_exit" -eq 2 ] && [[ "$check_output" == *"cannot find the merge-base"* ]]; then
+  echo "PASS  unknown base ref fails instead of passing"
+else
+  echo "FAIL  unknown base ref fails instead of passing: exit $check_exit"
+  printf '      %s\n' "${check_output//$'\n'/$'\n      '}"
+  failures=$((failures + 1))
+fi
 
 if [ "$failures" -ne 0 ]; then
   echo "$failures scenario(s) failed"

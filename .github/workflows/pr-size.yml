@@ -19,13 +19,13 @@ jobs:
       - name: Check out the pull request head
         uses: actions/checkout@v4
         with:
-          # The PR head itself, not the synthetic merge commit, so the diff
-          # against the base contains only the PR's own changes.
+          # The PR head itself, not GitHub's synthetic merge commit, so the
+          # measurement is exactly what the author pushed and does not move
+          # when main changes underneath the PR.
           ref: ${{ github.event.pull_request.head.sha }}
+          # Full history of every branch, which includes origin/<base_ref>
+          # that the gate diffs against.
           fetch-depth: 0
-
-      - name: Fetch the base branch
-        run: git fetch --no-tags origin "+refs/heads/${{ github.base_ref }}:refs/remotes/origin/${{ github.base_ref }}"
 
       - name: Test the gate script
         run: scripts/ci/pr-size-test.sh
