@@ -1,3 +1,3 @@
 # v1-read-only-engine
 
-Первая версия octopus-mpp: распределённый SQL-движок только для чтения на базе Ballista
+First version of octopus-mpp: a read-only distributed SQL engine built on Ballista
