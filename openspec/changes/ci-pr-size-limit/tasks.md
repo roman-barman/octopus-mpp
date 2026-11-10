@@ -8,7 +8,7 @@
 ## 2. Workflow
 
 - [x] 2.1 Add `.github/workflows/pr-size.yml`: trigger `pull_request` with types `opened, synchronize, reopened, labeled, unlabeled`; one job named `pr-size` that checks out `github.event.pull_request.head.sha` with `fetch-depth: 0`, fetches `origin/${{ github.base_ref }}`, runs `scripts/ci/pr-size-test.sh`, then runs `scripts/ci/pr-size.sh origin/${{ github.base_ref }}` with `PR_SIZE_OVERRIDE` set from `contains(github.event.pull_request.labels.*.name, 'size/override')`. Verify: the check appears as `pr-size` on the PR that introduces it and passes; the step log shows the measured size.
-- [ ] 2.2 Verify the override path end to end on the same PR: the owner temporarily adds `size/override`, the workflow re-runs on the `labeled` event and the log shows the override notice; the owner removes the label and the workflow re-runs on `unlabeled`. Record both run links in the PR body.
+- [x] 2.2 Verify the override path end to end on the same PR: the owner temporarily adds `size/override`, the workflow re-runs on the `labeled` event and the log shows the override notice; the owner removes the label and the workflow re-runs on `unlabeled`. Record both run links in the PR body.
 
 ## 3. Rules for agents
 
