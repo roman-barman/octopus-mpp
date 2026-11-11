@@ -1,0 +1,9 @@
+[package]
+name = "octopus-config"
+description = "Typed TOML and environment configuration for the octopus-mpp scheduler and executor"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]

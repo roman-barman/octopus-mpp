@@ -1,0 +1,4 @@
+# One compiler for every developer and for CI. Bump it in a dedicated change.
+[toolchain]
+channel = "1.98.1"
+components = ["rustfmt", "clippy"]

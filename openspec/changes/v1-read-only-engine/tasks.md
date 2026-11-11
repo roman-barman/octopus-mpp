@@ -20,8 +20,8 @@ Every pull request is limited to 500 changed lines and 20 files (`pr-size-gate`)
 
 ## 1. Repository bootstrap
 
-- [ ] 1.1 Add the Cargo workspace and `rust-toolchain.toml` to the existing repository (git, `README.md`, `.gitignore`, `LICENSE`, and the `pr-size` CI check already exist); verify `cargo build` of an empty workspace succeeds
-- [ ] 1.2 Create crates `octopus-config`, `octopus-storage`, `octopus-catalog`, `octopus-auth`, `octopus-session`, `octopus-gateway`, `octopus-scheduler`, `octopus-executor` with README stubs stating each crate's single responsibility; verify `cargo build --workspace`
+- [x] 1.1 Add the Cargo workspace and `rust-toolchain.toml` to the existing repository (git, `README.md`, `.gitignore`, `LICENSE`, and the `pr-size` CI check already exist), with `octopus-config` as the first member so that the workspace has something to build; verify `cargo build` of the workspace succeeds
+- [ ] 1.2 **[split]** Create the remaining crates `octopus-storage`, `octopus-catalog`, `octopus-auth`, `octopus-session`, `octopus-gateway`, `octopus-scheduler`, `octopus-executor` with README stubs stating each crate's single responsibility (three files per crate; two PRs: the five libraries, then the two binaries); verify `cargo build --workspace`
 - [ ] 1.3 Pin workspace dependencies (ballista 55.x crates, datafusion 55, arrow 59, deltalake 2.x, object_store, axum, tonic, rusqlite, tracing); verify `cargo tree` shows one DataFusion and one Arrow version
 - [ ] 1.4 Add CI (GitHub Actions): fmt, clippy `-D warnings`, unit tests, alongside the existing `pr-size` workflow; verify the workflow passes on the bootstrap commit
 - [ ] 1.5 Write `docs/architecture.md` skeleton (components, ports table, query lifecycle placeholder) and `docs/adr/0001-ballista-as-dependency.md`, `0002-workspace-layout.md`; verify they are linked from README

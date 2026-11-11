@@ -1,0 +1,18 @@
+# Workspace root for octopus-mpp.
+#
+# The root is deliberately not a package: it only ties the crates under
+# `crates/` together and holds the fields and dependency versions they share.
+[workspace]
+resolver = "3"
+members = ["crates/octopus-config"]
+
+# Fields every crate inherits with `<field>.workspace = true`.
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+license = "Apache-2.0"
+repository = "https://github.com/roman-barman/octopus-mpp"
+
+# Shared, pinned dependency versions. Ballista, DataFusion, Arrow, and
+# delta-rs are pinned here and upgraded together in a dedicated change.
+[workspace.dependencies]
