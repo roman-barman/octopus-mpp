@@ -18,32 +18,31 @@ The scheduler SHALL serve the HTTP API on a configured port separate from the Fl
 
 #### Scenario: Token login
 - **WHEN** a client posts to `/v1/login` with valid Basic credentials
-- **THEN** the response is HTTP 200 with `{ "token", "expires_in" }` and the token is accepted as `Authorization: Bearer` on every `/v1` route
+- **THEN** the response is HTTP 200 with `{ "token", "expires_in" }`, where `expires_in` is the session idle timeout in seconds, and the token is accepted as `Authorization: Bearer` on every `/v1` route
 
 #### Scenario: Basic-only client
 - **WHEN** a client submits a statement with Basic credentials and fetches `nextUri` with the same credentials from a different connection
 - **THEN** the fetch succeeds
 
-### Requirement: Statement ownership
-Statements SHALL be owned by the user who submitted them; fetching, listing, and cancelling a statement SHALL be allowed for its owner from any of their sessions and for admins, and denied with HTTP 403 for other users.
-
-#### Scenario: Other user fetches a statement
-- **WHEN** a reader fetches a statement submitted by a different user
-- **THEN** the response is HTTP 403
+Statement ownership (owner from any session, admins, HTTP 403 for others) is defined once in `access-control` and applies to every `/v1/statement*` route.
 
 ### Requirement: Submit a statement
-`POST /v1/statement` with a JSON body `{ "sql": "...", "session": {...optional settings...} }` SHALL create a query and return HTTP 202 with `{ "id", "state", "nextUri" }` immediately, without waiting for the query to finish.
+`POST /v1/statement` with a JSON body `{ "sql": "...", "session": {...optional settings...} }` SHALL parse the SQL synchronously, then create a query and return HTTP 202 with `{ "id", "state", "nextUri" }` without waiting for planning or execution to finish; planning errors SHALL be reported as state `FAILED` on the first fetch.
 
 #### Scenario: Submit returns handle
-- **WHEN** a client posts a long-running query
-- **THEN** the response arrives within one second with state `QUEUED` or `RUNNING` and a `nextUri`
+- **WHEN** a client posts a long-running query over a large table
+- **THEN** the response arrives within one second with state `QUEUED` or `RUNNING` and a `nextUri`, even if planning that query takes longer
 
-#### Scenario: Planning error
-- **WHEN** the SQL has a syntax error
+#### Scenario: Syntax error
+- **WHEN** the SQL does not parse
 - **THEN** the response is HTTP 400 with `{ "error": { "message", "code" } }` and no query is created
 
+#### Scenario: Planning error
+- **WHEN** the SQL parses but names an unknown table
+- **THEN** the response is HTTP 202 and the first fetch returns state `FAILED` with the planning error and no `nextUri`
+
 ### Requirement: Fetch results in pages
-`GET /v1/statement/{id}/{page}` SHALL return the query state, column metadata, a page of rows, and `nextUri` while more pages exist; the final page SHALL omit `nextUri` and include execution statistics.
+`GET /v1/statement/{id}/{page}` SHALL return the query state, column metadata, a page of rows, and `nextUri` while more pages exist; while the query is still running the page SHALL carry no rows and a `nextUri` pointing at the same page; the final page SHALL omit `nextUri` and include execution statistics.
 
 #### Scenario: Paging through results
 - **WHEN** a client follows `nextUri` until it is absent
@@ -62,7 +61,7 @@ Statements SHALL be owned by the user who submitted them; fetching, listing, and
 - **THEN** the next fetch returns state `FAILED` with the error and no `nextUri`
 
 ### Requirement: Arrow IPC results
-When a fetch request carries `Accept: application/vnd.apache.arrow.stream`, the gateway SHALL return the page as an Arrow IPC stream instead of JSON rows, with the same paging semantics via a `Link` or header-carried `nextUri`.
+When a fetch request carries `Accept: application/vnd.apache.arrow.stream`, the gateway SHALL return the page as an Arrow IPC stream instead of JSON rows, with the same paging semantics carried in a `Link: <nextUri>; rel="next"` response header (absent on the final page) and the query state in an `X-Octopus-State` header.
 
 #### Scenario: Arrow page
 - **WHEN** a client fetches a page with the Arrow accept header
@@ -90,11 +89,19 @@ A statement whose results are not fetched within a configured idle timeout SHALL
 - **THEN** the query is cancelled if running and its result pages are no longer retrievable
 
 ### Requirement: Catalog endpoints
-The gateway SHALL expose `GET /v1/catalog/schemas`, `POST /v1/catalog/schemas`, `DELETE /v1/catalog/schemas/{schema}`, `GET /v1/catalog/schemas/{schema}/tables`, `POST /v1/catalog/schemas/{schema}/tables`, `GET /v1/catalog/schemas/{schema}/tables/{table}`, `DELETE /v1/catalog/schemas/{schema}/tables/{table}`, and `POST /v1/catalog/schemas/{schema}/tables/{table}/refresh`, with the same semantics and role checks as the SQL DDL.
+The gateway SHALL expose `GET|POST /v1/catalog/schemas`, `DELETE /v1/catalog/schemas/{schema}[?cascade=true]`, `GET|POST /v1/catalog/schemas/{schema}/tables`, and `GET|DELETE /v1/catalog/schemas/{schema}/tables/{table}` plus `POST .../tables/{table}/refresh`, with the same semantics and role checks as the SQL DDL.
 
 #### Scenario: Register table over HTTP
-- **WHEN** an admin posts `{ "name": "orders", "format": "parquet", "location": "s3://data/tpch/orders/", "partitioned_by": [] }`
+- **WHEN** an admin posts `{ "name": "orders", "format": "parquet", "location": "s3://data/tpch/orders/", "partitioned_by": [{ "name": "o_orderdate", "type": "DATE" }] }`
 - **THEN** the response is HTTP 201 with the inferred schema and the table is queryable
+
+#### Scenario: Describe table over HTTP
+- **WHEN** a client gets `/v1/catalog/schemas/{schema}/tables/{table}`
+- **THEN** the body contains the format, location, options, partition columns, and Arrow schema of the table
+
+#### Scenario: Drop non-empty schema over HTTP
+- **WHEN** an admin deletes a schema that contains tables without `cascade=true`
+- **THEN** the response is HTTP 409 and the schema is unchanged
 
 #### Scenario: Reader cannot register
 - **WHEN** a reader posts to the tables endpoint

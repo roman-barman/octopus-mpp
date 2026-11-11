@@ -69,7 +69,7 @@ The system SHALL expose the catalog through `information_schema` (`tables`, `col
 - **THEN** it receives every registered schema and table with column names and types
 
 ### Requirement: Schema refresh for Delta tables
-For Delta tables the system SHALL read the current schema and file list from the transaction log at query planning time, so schema evolution and new commits are visible without re-registration.
+For Delta tables the system SHALL read the schema and file list of the latest version (or of the pinned version, see `delta-lake-source`) from the transaction log at every query planning, without any provider cache in between, so schema evolution and new commits are visible to the next query without re-registration.
 
 #### Scenario: New commit appears
 - **WHEN** new data is committed to a registered Delta table by an external writer

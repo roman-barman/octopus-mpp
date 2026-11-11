@@ -33,7 +33,7 @@ The system SHALL read the latest committed version at planning time, and SHALL a
 
 #### Scenario: Per-query time travel not supported
 - **WHEN** a client runs `SELECT * FROM events FOR VERSION AS OF 3`
-- **THEN** the statement fails with a syntax error stating that per-query time travel is not supported
+- **THEN** the statement fails with a parse error, and the catalog documentation explains that time travel is done by registering a pinned version
 
 ### Requirement: Partition and file pruning from the log
 The system SHALL use partition values and per-file column statistics recorded in the Delta log to skip files excluded by query predicates, without listing the storage prefix.

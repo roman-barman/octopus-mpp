@@ -39,7 +39,7 @@ The endpoint SHALL implement `PollFlightInfo` so that a client can submit a quer
 - **THEN** each poll returns progress until the final poll returns the endpoints, and no single call blocks longer than a configured bound
 
 ### Requirement: Cancellation
-The endpoint SHALL implement `CancelFlightInfo` / `CancelQuery` so a client can cancel a submitted or running query, and SHALL cancel a running query whose client disconnects before consuming its results.
+The endpoint SHALL implement `CancelFlightInfo` / `CancelQuery` so a client can cancel a submitted or running query, and SHALL cancel a running query whose results are not polled or fetched within the session idle timeout (the only disconnect signal a stateless Flight handle offers).
 
 #### Scenario: Explicit cancel
 - **WHEN** a client cancels a query obtained through polling
@@ -86,4 +86,4 @@ Query failures SHALL be returned as gRPC statuses whose message includes the use
 
 #### Scenario: Unknown table
 - **WHEN** a client queries a table that does not exist
-- **THEN** the status is `NOT_FOUND`/`INVALID_ARGUMENT` with a message naming the table
+- **THEN** the status is `INVALID_ARGUMENT` with a message naming the table
