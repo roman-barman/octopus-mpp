@@ -1,0 +1,10 @@
+[package]
+name = "octopus-gateway"
+description = "HTTP/JSON API of octopus-mpp: statements, paged results, catalog endpoints, OpenAPI, monitoring passthrough"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+publish = false
+
+[dependencies]

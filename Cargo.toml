@@ -4,7 +4,7 @@
 # `crates/` together and holds the fields and dependency versions they share.
 [workspace]
 resolver = "3"
-members = ["crates/octopus-config"]
+members = ["crates/*"]
 
 # Fields every crate inherits with `<field>.workspace = true`.
 [workspace.package]

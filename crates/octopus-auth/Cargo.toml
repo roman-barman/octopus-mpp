@@ -1,0 +1,10 @@
+[package]
+name = "octopus-auth"
+description = "Users, roles, Argon2id verification, and session tokens for octopus-mpp client endpoints"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+publish = false
+
+[dependencies]

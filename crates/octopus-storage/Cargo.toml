@@ -1,0 +1,10 @@
+[package]
+name = "octopus-storage"
+description = "Object store registry and delta-rs storage options for octopus-mpp, built from the [storage.s3] configuration"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+publish = false
+
+[dependencies]
