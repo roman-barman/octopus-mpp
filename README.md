@@ -27,7 +27,7 @@ Not in v1: writes of any kind, Hive Metastore/Glue adapters, multi-scheduler HA,
 
 ## Architecture in one paragraph
 
-Two processes. `octopus-scheduler` embeds the Ballista scheduler and adds the catalog, authentication, the Flight SQL endpoint, and the HTTP gateway; it talks to executors on a cluster-internal port and to clients on two separate ports. `octopus-executor` embeds the Ballista executor plus the same storage configuration and plan codecs, so Parquet and Delta scans run on any node. DataFusion plans and executes, Ballista distributes, and our crates stay thin: catalog, auth, gateway, configuration, and Delta wiring. Anything that must change inside Ballista goes upstream, on a pinned branch until merged.
+Two processes. `octopus-scheduler` embeds the Ballista scheduler and adds the catalog, authentication, the Flight SQL endpoint, and the HTTP gateway; it talks to executors on a cluster-internal port and to clients on two separate ports. `octopus-executor` embeds the Ballista executor plus the same storage configuration and plan codecs, so Parquet and Delta scans run on any node. DataFusion plans and executes, Ballista distributes, and our crates stay thin: configuration, storage, catalog, auth, sessions, gateway, and the plan codecs that let Delta scans travel to executors. Anything that must change inside Ballista goes upstream, on a pinned branch until merged.
 
 ```
 clients (DataGrip / ADBC / curl)

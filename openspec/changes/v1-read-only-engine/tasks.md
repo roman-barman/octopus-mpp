@@ -12,7 +12,7 @@ Every pull request is limited to 500 changed lines and 20 files (`pr-size-gate`)
 | `query-execution` | 4.4, 5.3, 5.4, 5.7–5.9, 7.2, 7.3, 10.5 |
 | `table-catalog` | 4.1–4.8, 8.6 |
 | `parquet-s3-source` | 2.2, 5.1, 5.5, 5.6, 5.10 |
-| `delta-lake-source` | 9.1–9.6 |
+| `delta-lake-source` | 2.5, 9.1–9.6 |
 | `flight-sql-frontend` | 3.3, 6.2, 6.4, 7.1–7.6 |
 | `http-gateway` | 8.1–8.9 |
 | `access-control` | 6.1–6.8 |
@@ -21,10 +21,10 @@ Every pull request is limited to 500 changed lines and 20 files (`pr-size-gate`)
 ## 1. Repository bootstrap
 
 - [x] 1.1 Add the Cargo workspace and `rust-toolchain.toml` to the existing repository (git, `README.md`, `.gitignore`, `LICENSE`, and the `pr-size` CI check already exist), with `octopus-config` as the first member so that the workspace has something to build; verify `cargo build` of the workspace succeeds
-- [ ] 1.2 **[split]** Create the remaining crates `octopus-storage`, `octopus-catalog`, `octopus-auth`, `octopus-session`, `octopus-gateway`, `octopus-scheduler`, `octopus-executor` with README stubs stating each crate's single responsibility (three files per crate; two PRs: the five libraries, then the two binaries); verify `cargo build --workspace`
+- [ ] 1.2 **[split]** Create the remaining crates `octopus-storage`, `octopus-catalog`, `octopus-auth`, `octopus-session`, `octopus-gateway`, `octopus-codec`, `octopus-scheduler`, `octopus-executor` with README stubs stating each crate's single responsibility (three files per crate, `src/lib.rs` for libraries and `src/main.rs` for binaries; two PRs: the five libraries, then the `octopus-codec` library and the two binaries); verify `cargo build --workspace`
 - [ ] 1.3 Pin workspace dependencies (ballista 55.x crates, datafusion 55, arrow 59, deltalake 2.x, object_store, axum, tonic, rusqlite, tracing); verify `cargo tree` shows one DataFusion and one Arrow version
 - [ ] 1.4 Add CI (GitHub Actions): fmt, clippy `-D warnings`, unit tests, alongside the existing `pr-size` workflow; verify the workflow passes on the bootstrap commit
-- [ ] 1.5 Write `docs/architecture.md` skeleton (components, ports table, query lifecycle placeholder) and `docs/adr/0001-ballista-as-dependency.md`, `0002-workspace-layout.md`; verify they are linked from README
+- [ ] 1.5 Write `docs/architecture.md` skeleton (components, ports table, query lifecycle placeholder) and `docs/adr/0001-ballista-as-dependency.md`, `0002-workspace-layout.md` (including the `octopus-codec` crate and the rule that the executor links only config, storage, and codec); verify they are linked from README
 
 ## 2. Configuration and storage
 
@@ -32,11 +32,12 @@ Every pull request is limited to 500 changed lines and 20 files (`pr-size-gate`)
 - [ ] 2.2 Implement `octopus-storage`: `ObjectStoreRegistry` building `s3://` (MinIO options: endpoint, path-style, allow-http, credentials) and `file://` stores from config; verify a unit test reads a local file and an ignored-by-default test lists a MinIO bucket
 - [ ] 2.3 Write `docs/operations.md` configuration reference generated from the config structs' doc comments; verify every key in the example TOML files is documented
 - [ ] 2.4 Add ADR `0003-config-and-storage.md`; verify linked from `docs/architecture.md`
+- [ ] 2.5 Implement the pass-through `OctopusLogicalCodec`/`OctopusPhysicalCodec` in `octopus-codec` (delegating to Ballista's default codec, constructor taking the storage configuration for 9.2) and the `OctopusOptions` config extension (`octopus.user`, `octopus.role`, `octopus.query_timeout`); verify a codec round-trip unit test on a Parquet scan plan and a unit test that `OctopusOptions` round-trips through DataFusion's `SessionConfig` key-value form
 
 ## 3. Cluster processes and Compose stand
 
-- [ ] 3.1 Implement `octopus-executor` binary: load config, build `ExecutorProcessConfig` with our storage registry (runtime producer) and vcores/memory settings, start Ballista executor; verify it registers against a plain `ballista-scheduler` locally
-- [ ] 3.2 Implement `octopus-scheduler` binary (cluster port only for now): load config, build `SchedulerConfig` (push-staged policy, min ready executors, event log dir), start; verify `/healthz` and `/readyz` behave per `cluster-operations` with 0 and 1 executors
+- [ ] 3.1 Implement `octopus-executor` binary: load config, build `ExecutorProcessConfig` with our storage registry (runtime producer), the `OctopusOptions` config extension from `octopus-codec` (config producer), its pass-through codecs, and vcores/memory settings, start Ballista executor; verify it registers against a plain `ballista-scheduler` locally
+- [ ] 3.2 Implement `octopus-scheduler` binary (cluster port only for now): load config, build `SchedulerConfig` (push-staged policy, min ready executors, event log dir, `OctopusOptions` via `override_config_producer`, pass-through `octopus-codec` codecs), start; verify `/healthz` and `/readyz` behave per `cluster-operations` with 0 and 1 executors
 - [ ] 3.3 Implement `--standalone` flag running scheduler and executor in one process with Ballista's built-in Flight SQL enabled; verify a Rust test runs `SELECT 1` through an `arrow-flight` Flight SQL client against it
 - [ ] 3.4 Implement graceful shutdown on SIGTERM for both binaries with configured grace period; verify integration tests: SIGTERM to an executor mid-query completes the query on the other executor (staged mode), and SIGTERM to the scheduler mid-query flips `/readyz` to 503, delivers a cancellation error to the client, and exits within the grace period
 - [ ] 3.5 **[split]** Create `deploy/compose` with MinIO (+ bucket bootstrap job), one scheduler, two executors, `scheduler.toml`, `executor.toml`, publishing only client ports, plus a `compose.dev.yml` override that temporarily publishes the cluster port for Phase 3–5 smoke tests (removed in Phase 6); verify `docker compose up` reaches `/readyz` 200 with two executors in under two minutes
@@ -72,7 +73,7 @@ Every pull request is limited to 500 changed lines and 20 files (`pr-size-gate`)
 
 - [ ] 6.1 **[split]** Implement `octopus-auth`: users from config with Argon2id hashes (reject plaintext), `hash-password` subcommand, `TokenStore` with idle TTL, the verified-credential cache and verification semaphore (design D6); verify unit tests for verify/expiry/revocation, plaintext rejection, cache hit avoiding a second hash, and bounded concurrency
 - [ ] 6.2 Implement the `ballista_flight_sql::Authenticator` adapter (Basic → token, no anonymous); wire via `override_flight_sql_authenticator`; verify an integration test logs in with ADBC and a wrong password is rejected with `UNAUTHENTICATED`
-- [ ] 6.3 Carry user and role into the session (`octopus.user`, `octopus.role`) and enforce `admin` for DDL; verify integration tests for reader-denied DDL and admin-allowed DDL
+- [ ] 6.3 Carry user and role into the session (`octopus.user`, `octopus.role`, set from the `TokenStore`, read-only for clients) and enforce `admin` for DDL; verify integration tests for reader-denied DDL, admin-allowed DDL, and `SET octopus.role = 'admin'` rejected with the role unchanged
 - [ ] 6.4 **[upstream a, only if needed]** Serve Flight SQL on a dedicated port with the scheduler's `QueryBackend`: first check whether the scheduler's `QueryBackend` implementation is constructible from the public API (`QueryBackend` itself is public); if not, agree approach with owner and implement on the pinned branch; wire in `octopus-scheduler`; verify executor RPCs are not served on the client port, remove `compose.dev.yml`, and verify the Compose stand publishes only client ports
 - [ ] 6.4b Build the cluster-port gRPC server with an interceptor that rejects all non-executor RPCs (**[upstream f]** only if public items are insufficient); verify an integration test calling `ExecuteQuery` on the cluster port gets `PERMISSION_DENIED` while executors still register
 - [ ] 6.5 **[upstream c]** Bind result tickets to sessions and restrict result fetches to registered executors (wrapper on our client port, or upstream hook); agree approach with owner; verify integration tests for ticket replay from another session and a forged executor address
@@ -105,7 +106,7 @@ Every pull request is limited to 500 changed lines and 20 files (`pr-size-gate`)
 ## 9. Delta Lake
 
 - [ ] 9.1 Add `deltalake` dependency; implement Delta `TableDef` → `DeltaTableProvider` (latest version, or version pinned via `OPTIONS (version = 'N')`) in `octopus-catalog` with storage options from `[storage.s3]`; verify a unit test loads a local Delta fixture at latest and at a pinned version
-- [ ] 9.2 Implement combined logical/physical codecs (Delta first, Ballista default fallback) constructed with the `[storage.s3]` options and installed on scheduler and executor; verify a codec round-trip unit test for a Delta scan plan, and record in `docs/delta.md` whether executor-side decoding opens the Delta log (design D8)
+- [ ] 9.2 Add the Delta branch to `OctopusLogicalCodec`/`OctopusPhysicalCodec` in `octopus-codec` (Delta first, Ballista default fallback), constructed with the `[storage.s3]` options; the binaries already install them (3.1, 3.2); verify a codec round-trip unit test for a Delta scan plan, and record in `docs/delta.md` whether executor-side decoding opens the Delta log (design D8)
 - [ ] 9.3 Write Delta copies of all eight TPC-H tables into MinIO in the harness (delta-rs writer), including one partitioned table and one with deletion vectors and column mapping; verify tables register by location and `DESCRIBE` matches the log schema
 - [ ] 9.4 Run the 22 TPC-H queries over the Delta tables; verify results equal the Parquet results
 - [ ] 9.5 Verify snapshot isolation (commit during a query), latest-version pickup, pinned-version registration, rejection of `FOR VERSION AS OF`, partition pruning from the log, and the "not a Delta table" / unsupported-feature errors in integration tests
