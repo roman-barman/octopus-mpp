@@ -1,0 +1,10 @@
+[package]
+name = "octopus-catalog"
+description = "Persistent table catalog for octopus-mpp: SQLite store, DataFusion catalog provider, table provider factory"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+publish = false
+
+[dependencies]

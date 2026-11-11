@@ -3,5 +3,25 @@
 version = 4
 
 [[package]]
+name = "octopus-auth"
+version = "0.1.0"
+
+[[package]]
+name = "octopus-catalog"
+version = "0.1.0"
+
+[[package]]
 name = "octopus-config"
+version = "0.1.0"
+
+[[package]]
+name = "octopus-gateway"
+version = "0.1.0"
+
+[[package]]
+name = "octopus-session"
+version = "0.1.0"
+
+[[package]]
+name = "octopus-storage"
 version = "0.1.0"

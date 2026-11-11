@@ -1,0 +1,10 @@
+[package]
+name = "octopus-session"
+description = "Per-session DataFusion state for octopus-mpp: session builder, statement interception, octopus.* options"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+publish = false
+
+[dependencies]
