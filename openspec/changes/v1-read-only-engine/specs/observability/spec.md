@@ -25,14 +25,18 @@ The system SHALL serve a browser UI from the scheduler's HTTP port that shows ex
 - **THEN** the UI shows the executor list and the query list
 
 ### Requirement: Query history
-Completed, failed, and cancelled queries SHALL be recorded durably with their summary, plan, and per-stage metrics, and SHALL remain browsable after a scheduler restart for a configured retention period.
+Completed, failed, and cancelled queries SHALL be recorded durably with their summary, plan, and per-stage metrics, and SHALL remain browsable after a scheduler restart through `GET /api/history` (paged list, filterable by user and state) and `GET /api/history/{job_id}` on the scheduler's HTTP port, restricted to admins; records older than the configured retention period SHALL be deleted.
 
 #### Scenario: History survives restart
-- **WHEN** queries complete, the scheduler restarts, and an operator lists history
-- **THEN** the completed queries are listed with their timings and plans
+- **WHEN** queries complete, the scheduler restarts, and an admin requests `/api/history`
+- **THEN** the completed queries are listed with their user, state, and timings, and `/api/history/{job_id}` returns the plan and per-stage metrics of each
+
+#### Scenario: Retention applied
+- **WHEN** the retention period elapses for a recorded query
+- **THEN** it is no longer listed and its record is removed from disk
 
 ### Requirement: Prometheus metrics
-The scheduler SHALL expose Prometheus metrics on its HTTP port at `/metrics`, including queries submitted/completed/failed/cancelled, query latency histogram, active executors, and per-executor (labelled by executor id) tasks running, task time, and shuffle bytes.
+The scheduler SHALL expose Prometheus metrics on its HTTP port at `/metrics`, without authentication and without SQL text or user names, including queries submitted/completed/failed/cancelled, query latency histogram, active executors, and per-executor (labelled by executor id) tasks running, task time, and shuffle bytes; the per-executor series are derived by the scheduler from executor task status updates.
 
 #### Scenario: Metrics scrape
 - **WHEN** Prometheus scrapes `/metrics` on the scheduler

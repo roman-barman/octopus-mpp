@@ -14,7 +14,7 @@ The system SHALL accept and execute read-only SQL: `SELECT` with joins, aggregat
 - **THEN** the query is planned, distributed, and returns the correct result
 
 #### Scenario: Write statement rejected
-- **WHEN** a client submits `INSERT`, `UPDATE`, `DELETE`, `MERGE`, `COPY`, or `CREATE TABLE ... AS SELECT`
+- **WHEN** a client submits `INSERT`, `UPDATE`, `DELETE`, `MERGE`, `COPY`, `CREATE TABLE` (with or without `AS SELECT`), or `CREATE VIEW`
 - **THEN** the statement is rejected before execution with an error stating that the engine is read-only
 
 ### Requirement: Distributed execution across executors

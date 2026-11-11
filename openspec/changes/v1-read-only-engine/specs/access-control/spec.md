@@ -29,7 +29,7 @@ Every client entry point (Flight SQL, HTTP) SHALL authenticate clients by userna
 - **THEN** the request is accepted and executed as that user
 
 ### Requirement: Bearer tokens and sessions
-A successful authentication SHALL yield an opaque bearer token bound to a new session; the token SHALL be accepted on both Flight SQL and HTTP, SHALL expire after a configured idle timeout, and SHALL be revocable by closing the session.
+A successful authentication through the Flight SQL handshake or `POST /v1/login` SHALL yield an opaque bearer token bound to a new session; the token SHALL be accepted on both Flight SQL and HTTP, SHALL expire after a configured idle timeout, and SHALL be revocable by closing the session. The one exception is an HTTP request that carries Basic credentials instead of a token: it is served from the user's implicit session as defined in `http-gateway`, and no new session is created.
 
 #### Scenario: Token reused across protocols
 - **WHEN** a client obtains a token through the Flight SQL handshake and uses it as `Authorization: Bearer` on the HTTP gateway
@@ -39,12 +39,20 @@ A successful authentication SHALL yield an opaque bearer token bound to a new se
 - **WHEN** a token is unused for longer than the idle timeout and is presented again
 - **THEN** the request fails with `UNAUTHENTICATED` and the client must re-authenticate
 
-### Requirement: Session isolation
-Session state (current schema, `SET` options, prepared statements, unfetched results) SHALL be private to the session; only catalog contents are shared.
+### Requirement: Session state versus statement ownership
+Session state (current schema, `SET` options, prepared statements, result tickets, unfetched results) SHALL be private to the session that created it; only catalog contents are shared. Submitted statements SHALL be owned by the submitting user and SHALL be fetchable, listable, and cancellable from any of that user's sessions and by admins, and denied with a permission error for other users. `http-gateway` and `flight-sql-frontend` apply this rule; they do not restate it.
 
 #### Scenario: Two sessions, different settings
 - **WHEN** session A sets pipelined mode and session B does not
 - **THEN** B's queries run in staged mode
+
+#### Scenario: Same user, second session
+- **WHEN** a user submits a statement over HTTP and later lists statements from a new Flight SQL-issued token
+- **THEN** the statement is listed
+
+#### Scenario: Other user fetches a statement
+- **WHEN** a reader fetches a statement submitted by a different user
+- **THEN** the request is denied with a permission error (HTTP 403 on the gateway)
 
 ### Requirement: No anonymous access
 The engine SHALL NOT provide a shared anonymous session; requests without credentials SHALL be rejected on every client endpoint.
@@ -70,13 +78,6 @@ Flight SQL and HTTP SHALL be served only on their configured client ports; the s
 #### Scenario: Native client RPC on the cluster port
 - **WHEN** a process on the cluster network calls the Ballista `ExecuteQuery` RPC on the scheduler's executor-facing port
 - **THEN** the call fails with `PERMISSION_DENIED`
-
-### Requirement: Statement ownership versus session state
-Session state (`SET` options, current schema, prepared statements, result tickets) SHALL be private to the session that created it; submitted statements SHALL be owned by the user and manageable from any of that user's sessions or by an admin.
-
-#### Scenario: Same user, second session
-- **WHEN** a user submits a statement over HTTP and later lists statements from a new Flight SQL-issued token
-- **THEN** the statement is listed
 
 ### Requirement: Result tickets are bound and validated
 Result tickets handed to clients SHALL be bound to the issuing session and SHALL be redeemable only by that session; the scheduler SHALL fetch result data only from executors currently registered with it, never from an address supplied in a ticket.
