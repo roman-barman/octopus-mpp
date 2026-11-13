@@ -11,11 +11,23 @@ name = "octopus-catalog"
 version = "0.1.0"
 
 [[package]]
+name = "octopus-codec"
+version = "0.1.0"
+
+[[package]]
 name = "octopus-config"
 version = "0.1.0"
 
 [[package]]
+name = "octopus-executor"
+version = "0.1.0"
+
+[[package]]
 name = "octopus-gateway"
+version = "0.1.0"
+
+[[package]]
+name = "octopus-scheduler"
 version = "0.1.0"
 
 [[package]]
