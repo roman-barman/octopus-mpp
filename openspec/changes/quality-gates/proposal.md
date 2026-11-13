@@ -6,7 +6,7 @@ The project's quality rules (formatted code, no clippy warnings, passing tests, 
 
 ## What Changes
 
-- Add versioned **git hooks** under `scripts/hooks/` (`pre-commit`, `commit-msg`, `pre-push`) with a one-command installer, enforcing: no commits or pushes to `main`, branch names of the form `<type>/<topic>`, `cargo fmt --check`, commit subject conventions, an OpenSpec reference in the commit body, and before every push `clippy -D warnings`, `cargo test --workspace`, and the PR size script.
+- Add versioned **git hooks** under `scripts/hooks/` (`pre-commit`, `commit-msg`, `pre-push`) with a one-command installer, enforcing: no commits or pushes to `main`, branch names of the form `<type>/<topic>`, `cargo fmt --check` on the staged tree, commit subject conventions, and an OpenSpec reference in the commit body. Clippy, tests, and the PR size are CI-only checks.
 - Add a **`ci.yml` GitHub Actions workflow** with one job per gate: `fmt`, `clippy`, `test`, `doc` (rustdoc with warnings denied), `deny` (`cargo deny`: advisories, licenses, duplicate versions, allowed sources), and `deps` (crate dependency direction from design D2 and `cargo modules dependencies --acyclic` for every crate). Each job name is a status check context to be required by the `protect-main` ruleset.
 - Add **workspace lints** (`[workspace.lints]`) inherited by every crate: `unsafe_code` forbidden, `unwrap_used` denied, `missing_docs`, `unreachable_pub`, and `clippy::all` as warnings that CI turns into errors.
 - Add a **`deny.toml`** with the license allowlist, advisory policy, a ban on multiple versions of any crate, and crates.io as the only allowed source (git sources allowed per pinned Ballista branch when D1 of `v1-read-only-engine` needs one).

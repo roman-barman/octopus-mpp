@@ -36,7 +36,7 @@ The `pre-commit` hook SHALL refuse a commit when the current branch name is not 
 - **THEN** the branch checks are skipped and the remaining pre-commit checks run
 
 ### Requirement: Formatting at commit time
-The `pre-commit` hook SHALL check the formatting of the staged content (the tree the commit will contain), not the working tree, SHALL refuse the commit when any file is unformatted, and SHALL skip the check when no Rust file is staged.
+The `pre-commit` hook SHALL check the formatting of the staged content (the tree the commit will contain), not the working tree, SHALL refuse the commit when any file is unformatted, and SHALL skip the check when neither a Rust file nor a file that governs formatting (`rustfmt.toml`, a `Cargo.toml`, `rust-toolchain.toml`) is staged.
 
 #### Scenario: Unformatted staged file
 - **WHEN** a staged `.rs` file is not formatted
@@ -47,18 +47,22 @@ The `pre-commit` hook SHALL check the formatting of the staged content (the tree
 - **THEN** the commit is accepted
 
 #### Scenario: Docs-only commit
-- **WHEN** the staged changes contain no `.rs` file
+- **WHEN** the staged changes contain no `.rs` file and no formatting configuration
 - **THEN** the formatting check is skipped and the hook exits 0
 
 ### Requirement: Message cleanup before checking
-The `commit-msg` hook SHALL apply git's own cleanup to the message file before any check: drop everything from a scissors line on, drop `#` comment lines, and drop leading and trailing blank lines, so that the subject is the first remaining line and the body is the rest.
+The `commit-msg` hook SHALL apply the cleanup git applies per `commit.cleanup` before any check: cut at the scissors line (built from `core.commentChar`), drop comment lines unless the mode keeps them (`whitespace`, `scissors`, `verbatim`), and trim blank padding, so that the subject is the first remaining line and the body is the rest. In the default mode, where git keeps comments for `-m`/`-F`, a leading comment line SHALL be refused unless the file looks like an editor template.
 
 #### Scenario: Editor template
 - **WHEN** the message file starts with a blank line followed by git's `#` comment block and the subject typed below it
 - **THEN** the hook checks the typed subject, not the blank line or a comment
 
+#### Scenario: Leading comment with -F in default mode
+- **WHEN** a message file given with `-F` starts with a single `#` line
+- **THEN** the commit is refused, because git would commit that line as the subject
+
 ### Requirement: Commit subject conventions
-The `commit-msg` hook SHALL refuse a commit whose subject line is longer than 72 characters, does not start with an uppercase letter, ends with a period, or starts with a past-tense or gerund verb form (first word ending in `ed` or `ing`, except a documented list of imperative verbs with those endings), and SHALL skip these checks for `fixup!`, `squash!`, merge, and revert subjects.
+The `commit-msg` hook SHALL refuse a commit whose subject line is longer than 72 characters, does not start with an uppercase letter, ends with a period, or starts with a past-tense or gerund verb form (first word ending in `ed` or `ing`, except a documented list of imperative verbs with those endings), and SHALL skip these checks for `fixup!`, `squash!`, `amend!`, merge (in progress, or git's own merge subject forms), and git-generated revert subjects.
 
 #### Scenario: Past tense subject
 - **WHEN** the subject is `Added the codec crate`
@@ -71,6 +75,13 @@ The `commit-msg` hook SHALL refuse a commit whose subject line is longer than 72
 #### Scenario: Fixup commit
 - **WHEN** the subject starts with `fixup! `
 - **THEN** the hook exits 0 without checking the subject or the body
+
+### Requirement: Subject is one paragraph of one line
+The `commit-msg` hook SHALL refuse a message whose second line is not blank, because git makes the whole first paragraph the subject.
+
+#### Scenario: Second line glued to the subject
+- **WHEN** the message is `Add a note` followed directly by `quality-gates: 2.2` with no blank line
+- **THEN** the commit is refused and the message asks for a blank line after the subject
 
 ### Requirement: Reference line format
 The `commit-msg` hook SHALL treat as an OpenSpec reference every body line `<change>: <ids>` whose key is lowercase kebab-case and whose right-hand side is a comma-separated list of task ids (`N` or `N.M`), optionally followed by a parenthesized note, or the phrase `planning artifacts only`. Other lines are prose and are not checked.
@@ -101,39 +112,21 @@ The `commit-msg` hook SHALL refuse a commit whose body has no reference and no l
 - **WHEN** the body has neither an OpenSpec reference nor a `No OpenSpec change:` line
 - **THEN** the commit is refused and the message shows both accepted forms
 
-### Requirement: Push gate scope
-The `pre-push` hook SHALL ignore branch deletions and tags, SHALL refuse a push that updates the remote `main` branch, and SHALL refuse when the pushed commit is not `HEAD` or tracked files have uncommitted changes, so that the checks run on exactly the pushed tree.
+### Requirement: Push gate
+The `pre-push` hook SHALL refuse a push that updates the remote `main` branch and SHALL accept every other push without running further checks; formatting, lints, tests, and the pull request size are verified by CI on the pull request.
 
 #### Scenario: Push to main
 - **WHEN** a developer pushes a branch to `refs/heads/main` on the remote
-- **THEN** the push is refused before any check runs
+- **THEN** the push is refused with a message pointing to pull requests
 
 #### Scenario: Branch deletion
 - **WHEN** a developer runs `git push origin --delete feat/old`
-- **THEN** the hook exits 0 without running any check
+- **THEN** the hook exits 0
 
-#### Scenario: Dirty working tree
-- **WHEN** a tracked file has uncommitted changes
-- **THEN** the push is refused and the message names the dirty tree
+#### Scenario: Feature branch with a clippy warning
+- **WHEN** a developer pushes a feature branch whose code has a clippy warning
+- **THEN** the push is accepted and the `clippy` CI check reports it on the pull request
 
-### Requirement: Push checks
-The `pre-push` hook SHALL fetch `main` from the push target and run, stopping at the first failure, `scripts/ci/pr-size.sh` against the fetched `main`, then, only when the pushed range touches a Rust source or Cargo manifest, `cargo clippy --workspace --all-targets -- -D warnings` and `cargo test --workspace`.
-
-#### Scenario: Clippy warning
-- **WHEN** the workspace has one clippy warning
-- **THEN** the push is refused and the clippy output is shown
-
-#### Scenario: Oversized branch
-- **WHEN** the branch exceeds the PR size limit against the push target's `main`
-- **THEN** the push is refused with the size script's summary before any cargo command runs
-
-#### Scenario: Stale local main
-- **WHEN** the remote `main` has commits the local `origin/main` lacks and the branch is within the limit against the remote `main`
-- **THEN** the push is accepted
-
-#### Scenario: Docs-only branch
-- **WHEN** the pushed range changes only Markdown files
-- **THEN** the size check runs and the cargo checks are skipped
 
 ### Requirement: Hooks are tested
 The hooks SHALL have a test script that runs every scenario above in a throwaway repository without network access and exits non-zero when any scenario fails.

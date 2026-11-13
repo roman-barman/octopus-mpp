@@ -1,0 +1,22 @@
+#!/usr/bin/env bash
+# pre-push: no pushes to main.
+#
+# main changes only through pull requests. Everything else that used to be
+# checked here (PR size, clippy, tests) is CI's job (owner decision,
+# 2026-11-13): the agent reads the check results on the pull request.
+# Install with scripts/hooks/install.sh.
+#
+# git calls this with the remote name (or URL) as $1 and the URL as $2, and
+# feeds "<local ref> <local sha> <remote ref> <remote sha>" lines on stdin.
+set -euo pipefail
+# shellcheck source=scripts/hooks/lib.sh
+. "$(dirname "$0")/lib.sh"
+
+zero_sha="0000000000000000000000000000000000000000"
+while read -r _local_ref local_sha remote_ref _remote_sha; do
+  [ "$local_sha" = "$zero_sha" ] && continue # branch deletion
+  if [ "$remote_ref" = "refs/heads/main" ]; then
+    refuse "no pushes to main" \
+      "main changes only through pull requests; push your branch and open one"
+  fi
+done
