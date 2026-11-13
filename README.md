@@ -66,6 +66,16 @@ scripts/ci/pr-size.sh origin/main
 
 The only exception is the `size/override` label, which the project owner adds after a written justification why the PR cannot be made smaller. The gate's behavior is specified in [`openspec/specs/pr-size-gate/spec.md`](openspec/specs/pr-size-gate/spec.md).
 
+## Git hooks
+
+The repository ships its git hooks in `scripts/hooks/`. Install them once per clone:
+
+```
+scripts/hooks/install.sh
+```
+
+They catch the project's rules before CI does: `pre-commit` refuses commits on `main` or on a branch not named `<type>/<topic>` and checks `cargo fmt` on the staged tree; `commit-msg` requires an imperative subject of at most 72 characters and a body line citing the OpenSpec change and tasks (`quality-gates: 2.2`), or, for the files the owner exempted from OpenSpec, a line `No OpenSpec change: <reason>`; `pre-push` refuses pushes to `main`. Clippy, tests, and the PR size limit are checked by CI on the pull request. The hooks have no skip flag; `--no-verify` is the only bypass and is not used in this project. Their behavior is specified in the `git-hooks` spec of the `quality-gates` change and tested by `scripts/hooks/hooks-test.sh`.
+
 ## Building blocks
 
 | Piece | Source |

@@ -1,0 +1,47 @@
+#!/usr/bin/env bash
+# pre-commit: branch rules and formatting of the staged tree.
+#
+# Refuses a commit on main or on a branch that is not <type>/<topic>, then,
+# when a Rust file is staged, checks the formatting of the index (the tree
+# the commit will contain), not of the working tree. Install with
+# scripts/hooks/install.sh.
+set -euo pipefail
+# shellcheck source=scripts/hooks/lib.sh
+. "$(dirname "$0")/lib.sh"
+
+# Branch checks are skipped in detached HEAD (rebase, bisect): there is no
+# branch to judge, and the commit is rewritten onto one later.
+branch="$(git symbolic-ref --quiet --short HEAD || true)"
+if [ -n "$branch" ]; then
+  if [ "$branch" = "main" ]; then
+    refuse "no commits on main" \
+      "main changes only through pull requests" \
+      "create a branch named <type>/<topic> (type: feat, fix, chore, docs, spec) and commit there"
+  fi
+  if ! [[ "$branch" =~ ^(feat|fix|chore|docs|spec)/[a-z0-9-]+$ ]]; then
+    refuse "branch name must be <type>/<topic>" \
+      "branch: $branch" \
+      "allowed types: feat fix chore docs spec" \
+      "topic: lowercase letters, digits, and hyphens"
+  fi
+fi
+
+# Formatting is checked on an export of the index, so what is judged is
+# exactly what gets committed, whatever the working tree looks like.
+# Rust sources, or the files that decide how they are formatted or which crates exist.
+staged_rust="$(git diff --cached --name-only --diff-filter=ACMR -- '*.rs' 'rustfmt.toml' '*Cargo.toml' 'rust-toolchain.toml')"
+if [ -n "$staged_rust" ]; then
+  command -v cargo > /dev/null || refuse "cargo is not on PATH" \
+    "the formatting check needs the pinned toolchain; add ~/.cargo/bin to PATH"
+  export_dir="$(mktemp -d)"
+  trap 'rm -rf "$export_dir"' EXIT
+  git checkout-index -a --prefix="$export_dir/"
+  # The whole committed tree is checked, so an older unformatted file shows up too.
+  fmt_exit=0
+  fmt_output="$(cd "$export_dir" && cargo fmt --check 2>&1)" || fmt_exit=$?
+  if [ "$fmt_exit" -ne 0 ]; then
+    echo "${fmt_output//"$export_dir/"/}"
+    refuse "cargo fmt --check failed on the committed tree (exit $fmt_exit)" \
+      "if files are listed above, run 'cargo fmt', stage the result, and commit again"
+  fi
+fi
