@@ -10,8 +10,9 @@ to `octopus-catalog` with an admin role check, `USE` and `SET SCHEMA` update
 the session defaults, write statements are rejected as read-only, and read
 statements pass through untouched.
 
-Depends on `octopus-config`, `octopus-storage`, `octopus-catalog`, and
-`octopus-auth`. Used by `octopus-gateway` and `octopus-scheduler`.
+Depends on `octopus-config`, `octopus-storage`, `octopus-catalog`,
+`octopus-auth`, and `octopus-codec` (for the `OctopusOptions` type it sets on
+the session). Used by `octopus-gateway` and `octopus-scheduler`.
 
 The plan codecs (design D8) are not owned here: they live in `octopus-codec`,
 which both binaries install through Ballista's `override_*_codec` hooks, so
