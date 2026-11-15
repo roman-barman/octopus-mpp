@@ -73,8 +73,9 @@ add_dependency() {
     "$(dirname "$target")" "$(dirname "$manifest")")"
   line="$3 = { path = \"$path\" }"
   sed -i "/^$3[[:space:]]*=/d" "$manifest"
-  if grep -q "^\[$2\][[:space:]]*$" "$manifest"; then
-    sed -i "/^\[$2\][[:space:]]*$/a $line" "$manifest"
+  # A table header may carry a trailing comment.
+  if grep -q "^\[$2\][[:space:]]*\(#.*\)\?$" "$manifest"; then
+    sed -i "/^\[$2\][[:space:]]*\(#.*\)\?$/a $line" "$manifest"
   else
     printf '\n[%s]\n%s\n' "$2" "$line" >> "$manifest"
   fi
@@ -115,6 +116,14 @@ check "test-only dependency is not checked" 0 "crate dependency direction ok"
 fresh_workspace
 add_dependency octopus-session dependencies octopus-codec
 check "session linking the codec is allowed" 0 "crate dependency direction ok"
+
+fresh_workspace
+add_dependency octopus-config dependencies octopus-storage
+check "a crate absent from the allowed table may depend on no workspace crate" 1 "octopus-config -> octopus-storage"
+
+fresh_workspace
+add_dependency octopus-executor build-dependencies octopus-catalog
+check "build dependencies are checked like normal ones" 1 "octopus-executor -> octopus-catalog"
 
 if [ "$failures" -ne 0 ]; then
   echo "$failures scenario(s) failed"

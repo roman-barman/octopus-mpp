@@ -63,6 +63,12 @@ Root `Cargo.toml` gets `[workspace.lints.rust]` with `unsafe_code = "forbid"`, `
 
 The design originally added `cargo modules dependencies --acyclic` (cargo-modules 0.28.0) per crate to catch module cycles. It was dropped on 2026-11-15 (owner decision) after the review of the implementing pull request showed, on scratch crates with both 0.28.0 and 0.21.1, that the flag reports a cycle for any struct with an inherent method (`Config` owns `Config::n`, `Config::n` uses `Config`), that the item filters are applied after the check and so cannot help, and that the tool does not see dependencies inside function bodies without a `use`. The 2026-11-13 verification missed this because its scratch crates had no methods. A prototype that parses the module-only graph and searches cycles among `uses` edges between non-ancestor modules works on scratch cases, but on real crates it flags 2 cycles in `serde_json`, 4 in `regex`, and 32 in `clap_builder`: a strictness no idiomatic crate meets. With no project code to calibrate the rule on, module acyclicity is a non-goal of this change; it is revisited when there is code, with that prototype as the starting point.
 
+### D9. The `test` gate never needs the Compose stand
+It runs `cargo test --workspace`. `v1-read-only-engine` D2 adds `tests/integration`, Rust tests that drive the Docker Compose stand; those tests are `#[ignore]` and run with `cargo test -- --ignored` from the stand's own target, the convention v1 task 2.2 already uses for its MinIO test. A separate package excluded from default members would not help, since `--workspace` includes every member, and a feature flag hides tests from `clippy --all-targets`.
+
+### D10. Task 1.4 of `v1-read-only-engine` is superseded, not duplicated
+Its text is rewritten to "delivered by the `quality-gates` change" in the spec PR and checked in the PR that adds `ci.yml` (task 3.5), so the v1 task list stays truthful without a second workflow.
+
 ## Risks / Trade-offs
 
 - [`multiple-versions = "deny"` fails task 1.3 if Ballista and delta-rs disagree on a transitive crate] → Expected and wanted: the `skip` list is where that disagreement is written down with a reason instead of hiding in `Cargo.lock`.
