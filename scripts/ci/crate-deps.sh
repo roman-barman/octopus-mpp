@@ -23,7 +23,9 @@ if [ $# -gt 1 ]; then
   echo "usage: $0 [<workspace-dir>]" >&2
   exit 2
 fi
-workspace="${1:-$(git rev-parse --show-toplevel)}"
+# The default is the repository this script lives in, so the documented
+# command works from any directory and outside a git checkout.
+workspace="${1:-$(cd "$(dirname "$0")/../.." && pwd)}"
 
 # The comparison is a few lines of Python (the runners and the dev machine
 # have python3; jq is not assumed, as in pr-size.sh). The program is read
