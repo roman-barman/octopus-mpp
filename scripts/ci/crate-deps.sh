@@ -3,9 +3,10 @@
 #
 # Reads the declared dependencies of every workspace crate from
 # `cargo metadata --no-deps` (no resolution, so no network and no complete
-# lock file needed) and compares the `octopus-*` to `octopus-*` edges with
+# lock file needed) and compares the edges between workspace crates with
 # the allowed edges of design D2 of `v1-read-only-engine`, hard-coded below
-# as the single source of truth. Every forbidden edge is printed.
+# as the single source of truth. A workspace crate missing from the table
+# may depend on no other workspace crate. Every forbidden edge is printed.
 #
 # Only normal and build dependencies are edges: a `[dev-dependencies]` entry
 # never links into a shipped binary, so a test-only edge is a cost in compile
@@ -50,16 +51,17 @@ ALLOWED = {
 }
 
 metadata = json.load(sys.stdin)
+# With --no-deps the packages are exactly the workspace members, whatever
+# their names and directories.
+members = {package["name"] for package in metadata["packages"]}
 forbidden = []
 checked = 0
 for package in metadata["packages"]:
     source = package["name"]
-    if not source.startswith("octopus-"):
-        continue
     for dependency in package["dependencies"]:
         target = dependency["name"]
         # `kind` is null for a normal dependency, "build" or "dev" otherwise.
-        if not target.startswith("octopus-") or dependency["kind"] == "dev":
+        if target not in members or dependency["kind"] == "dev":
             continue
         checked += 1
         if target not in ALLOWED.get(source, set()):
