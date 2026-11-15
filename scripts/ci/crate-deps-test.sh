@@ -2,10 +2,12 @@
 # Tests for scripts/ci/crate-deps.sh.
 #
 # Copies the workspace manifests into a temporary directory with an empty
-# source file per crate (enough for `cargo metadata --no-deps`), edits one
+# source file per target (enough for `cargo metadata --no-deps`), edits one
 # manifest per scenario of the "Crate dependency direction" requirement of
 # the ci-quality-gates spec, and checks the gate's exit code and output.
-# No network, no build, a few seconds.
+# The members and their source files come from the real workspace's
+# metadata, so a member outside `crates/` is copied too. No network, no
+# build, a few seconds.
 #
 # Usage: scripts/ci/crate-deps-test.sh
 set -euo pipefail
@@ -17,31 +19,56 @@ trap 'rm -rf "$work"' EXIT
 
 failures=0
 
+# One line per workspace member: "<name> <manifest> <source file>...", all
+# paths relative to the workspace root, read once from the real workspace.
+members=$(cd "$source_root" && cargo metadata --no-deps --format-version 1 | python3 -I -c '
+import json, os, sys
+metadata = json.load(sys.stdin)
+root = metadata["workspace_root"]
+for package in metadata["packages"]:
+    paths = [package["manifest_path"]] + [t["src_path"] for t in package["targets"]]
+    print(package["name"], *(os.path.relpath(p, root) for p in paths))
+')
+
 # fresh_workspace: resets $work/ws to a copy of the real manifests with
-# empty crate sources, so each scenario starts from the current workspace.
+# empty sources, so each scenario starts from the current workspace.
 fresh_workspace() {
   rm -rf "$work/ws"
   mkdir -p "$work/ws"
   cp "$source_root/Cargo.toml" "$source_root/rust-toolchain.toml" "$work/ws/"
-  local crate name
-  for crate in "$source_root"/crates/*/; do
-    name="$(basename "$crate")"
-    mkdir -p "$work/ws/crates/$name/src"
-    cp "$crate/Cargo.toml" "$work/ws/crates/$name/"
-    if [ -f "$crate/src/main.rs" ]; then
-      : > "$work/ws/crates/$name/src/main.rs"
-    else
-      : > "$work/ws/crates/$name/src/lib.rs"
+  local name manifest sources source
+  while read -r name manifest sources; do
+    mkdir -p "$work/ws/$(dirname "$manifest")"
+    cp "$source_root/$manifest" "$work/ws/$manifest"
+    for source in $sources; do
+      mkdir -p "$work/ws/$(dirname "$source")"
+      : > "$work/ws/$source"
+    done
+  done <<< "$members"
+}
+
+# manifest_of <crate>: the scratch manifest path of a workspace member.
+manifest_of() {
+  local name manifest rest
+  while read -r name manifest rest; do
+    if [ "$name" = "$1" ]; then
+      echo "$work/ws/$manifest"
+      return
     fi
-  done
+  done <<< "$members"
+  echo "no workspace member named $1" >&2
+  exit 2
 }
 
 # add_dependency <crate> <table> <dependency>: adds a path dependency on
 # <dependency> to the <table> ("dependencies" or "dev-dependencies") of
-# <crate>'s manifest in the scratch workspace.
+# <crate>'s manifest in the scratch workspace, replacing an existing entry
+# for the same dependency so the manifest stays valid TOML.
 add_dependency() {
-  local manifest="$work/ws/crates/$1/Cargo.toml"
+  local manifest
+  manifest="$(manifest_of "$1")"
   local line="$3 = { path = \"../$3\" }"
+  sed -i "/^$3 = /d" "$manifest"
   if grep -q "^\[$2\]$" "$manifest"; then
     sed -i "/^\[$2\]$/a $line" "$manifest"
   else
@@ -83,7 +110,7 @@ check "test-only dependency is not checked" 0 "crate dependency direction ok"
 
 fresh_workspace
 add_dependency octopus-session dependencies octopus-codec
-check "session linking the codec is allowed" 0 "1 workspace edges checked"
+check "session linking the codec is allowed" 0 "crate dependency direction ok"
 
 if [ "$failures" -ne 0 ]; then
   echo "$failures scenario(s) failed"

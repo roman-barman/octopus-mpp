@@ -17,16 +17,24 @@ set -euo pipefail
 cd "$(git rev-parse --show-toplevel)"
 
 # One line per target: "<package> lib" or "<package> bin <name>", from the
-# workspace metadata (declared targets only, no resolution).
+# workspace metadata (declared targets only, no resolution). Every library
+# crate type is a `--lib` target; tests, examples, and benches are not
+# shipped and are skipped.
 targets=$(cargo metadata --no-deps --format-version 1 | python3 -I -c '
 import json, sys
+LIBRARY_KINDS = {"lib", "rlib", "dylib", "cdylib", "staticlib", "proc-macro"}
 for package in json.load(sys.stdin)["packages"]:
     for target in package["targets"]:
-        if "lib" in target["kind"]:
+        kinds = set(target["kind"])
+        if kinds & LIBRARY_KINDS:
             print(package["name"], "lib")
-        elif "bin" in target["kind"]:
+        elif "bin" in kinds:
             print(package["name"], "bin", target["name"])
 ')
+if [ -z "$targets" ]; then
+  echo "no library or binary target found in the workspace" >&2
+  exit 1
+fi
 
 while read -r package kind name; do
   if [ "$kind" = lib ]; then
