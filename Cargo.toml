@@ -16,3 +16,23 @@ repository = "https://github.com/roman-barman/octopus-mpp"
 # Shared, pinned dependency versions. Ballista, DataFusion, Arrow, and
 # delta-rs are pinned here and upgraded together in a dedicated change.
 [workspace.dependencies]
+
+# Lints every crate inherits with `[lints] workspace = true`. Warnings stay
+# warnings in a local `cargo build`; CI and the documented commands pass
+# `-D warnings`, so the same code is red there. A local `#[allow(...)]`
+# carries a comment stating why. See openspec/changes/quality-gates/design.md D6.
+[workspace.lints.rust]
+# No unsafe anywhere: the engine is glue over DataFusion and Ballista.
+unsafe_code = "forbid"
+# Every public item explains itself; the owner reads the crates by their docs.
+missing_docs = "warn"
+# `pub` that nothing outside the crate can reach is really `pub(crate)`.
+unreachable_pub = "warn"
+
+[workspace.lints.clippy]
+# The group gets a lower priority so that the single lints below override it.
+all = { level = "warn", priority = -1 }
+# Production code never unwraps; tests may (`clippy.toml`,
+# `allow-unwrap-in-tests`). `expect` with a message stays allowed: it states
+# the invariant that `unwrap` leaves implicit (owner decision 2026-11-13).
+unwrap_used = "deny"
