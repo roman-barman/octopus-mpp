@@ -1,0 +1,5 @@
+# Clippy configuration for the workspace (read from the workspace root).
+#
+# `clippy::unwrap_used` is denied in `[workspace.lints.clippy]`; this lets
+# `#[cfg(test)]` code unwrap without repeating an `#[allow]` in nine crates.
+allow-unwrap-in-tests = true
