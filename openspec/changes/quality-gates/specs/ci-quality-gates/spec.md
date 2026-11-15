@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Blocks the merge of any pull request whose code is unformatted, has lint warnings, fails tests or documentation, violates the dependency policy, or breaks the crate dependency direction and module acyclicity rules.
+Blocks the merge of any pull request whose code is unformatted, has lint warnings, fails tests or documentation, violates the dependency policy, or breaks the crate dependency direction.
 
 ## ADDED Requirements
 
@@ -75,17 +75,6 @@ The `deps` job SHALL fail when a workspace crate depends on another workspace cr
 #### Scenario: Test-only dependency
 - **WHEN** a crate lists another workspace crate only under `[dev-dependencies]`
 - **THEN** the edge is not checked and the `deps` job passes
-
-### Requirement: Acyclic modules
-The `deps` job SHALL fail when, in any workspace crate, modules import each other as modules (`use crate::b;` in `a` and `use crate::a;` in `b`, directly or through a longer chain), as reported by the module analysis tool. Imports of individual items and `#[cfg(test)]` modules using `super::*` are not cycles for this gate.
-
-#### Scenario: Two modules import each other
-- **WHEN** module `a` contains `use crate::b;` and module `b` contains `use crate::a;` in the same crate
-- **THEN** the `deps` job fails and shows the cycle
-
-#### Scenario: Inline tests module
-- **WHEN** a module contains `#[cfg(test)] mod tests { use super::*; }`
-- **THEN** the `deps` job passes
 
 ### Requirement: Local reproducibility
 Every gate SHALL be runnable locally with a documented command that produces the same verdict as CI, using the pinned toolchain and pinned tool versions.

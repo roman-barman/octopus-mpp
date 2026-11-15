@@ -23,11 +23,11 @@ Each numbered group is one pull request (design, Migration Plan). Groups 2 and 3
 
 - [x] 3.5 In the same PR, check task 1.4 of `openspec/changes/v1-read-only-engine/tasks.md` as delivered; verify `openspec list` shows its completed count increased by one
 
-## 4. Dependency direction and acyclic modules
+## 4. Dependency direction
 
 - [x] 4.1 Write `scripts/ci/crate-deps.sh`: run `cargo metadata --no-deps --format-version 1`, extract `octopus-*` to `octopus-*` edges of kind normal and build (not dev) with an embedded `python3` snippet, compare with the allowed edges of `v1-read-only-engine` design D2 hard-coded in the script (`executor` → config, storage, codec; `codec` → config, storage; `storage` → config; `catalog` → config, storage; `auth` → config; `session` → config, storage, catalog, auth, codec; `gateway` → config, catalog, auth, session; `scheduler` → every library), print each forbidden edge, exit 1 if any; verify `shellcheck` passes and the script exits 0 on the current workspace
 - [x] 4.2 Write `scripts/ci/crate-deps-test.sh` that copies the root and crate manifests into a temporary directory with an empty `src/lib.rs` or `src/main.rs` per crate (enough for `cargo metadata --no-deps`), and asserts three scenarios: `octopus-catalog` added to the executor's `[dependencies]` is named and exits 1, the same crate under `[dev-dependencies]` passes, and `octopus-codec` under the session's `[dependencies]` passes; verify the test exits 0 and reports all three
-- [ ] 4.3 Add the `deps` job to `ci.yml`: run `crate-deps-test.sh`, `crate-deps.sh`, then `cargo install cargo-modules --locked --version 0.28.0` with the same guarded single-binary cache pattern and `cargo modules dependencies --acyclic` for each library (`-p <crate> --lib`) and binary (`-p <crate> --bin <crate>`); verify the `deps` check passes on the PR and a scratch crate with two mutually importing modules makes the acyclic step fail locally
+- [ ] 4.3 Add the `deps` job to `ci.yml`: run `crate-deps-test.sh`, then `crate-deps.sh` (the `cargo modules dependencies --acyclic` step planned here was dropped by owner decision 2026-11-15, see design D8); verify the `deps` check passes on the PR
 - [x] 4.4 Add the `deps` gate to the README "Quality gates" section with its local commands; verify the commands run as written
 - [x] 4.5 Add `allow_attributes_without_reason = "warn"` to `[workspace.lints.clippy]` and change the spec, design D6, proposal, and README from "a comment stating why" to `reason = "..."` (owner decision 2026-11-15, from the PR 18 review); verify `cargo clippy --workspace --all-targets -- -D warnings` passes and a scratch `#[allow(clippy::too_many_arguments)]` without `reason` fails it while the same attribute with `reason = "..."` passes
 
