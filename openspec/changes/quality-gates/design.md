@@ -48,6 +48,10 @@ Jobs: `fmt`, `clippy`, `test`, `doc`, `deny`, `deps`. Each job name is the statu
 ### D6. Lints live in `[workspace.lints]`, every crate inherits them
 Root `Cargo.toml` gets `[workspace.lints.rust]` with `unsafe_code = "forbid"`, `missing_docs = "warn"`, `unreachable_pub = "warn"`, and `[workspace.lints.clippy]` with `all = "warn"`, `unwrap_used = "deny"`. Each crate adds `[lints] workspace = true`. Warnings become errors through `-D warnings` in CI and the `pre-push` hook, so local `cargo build` stays informative rather than blocking. A one-line `clippy.toml` at the workspace root sets `allow-unwrap-in-tests = true`, so `#[cfg(test)]` code may unwrap without a per-module `#[allow]` that nine crates would have to repeat; production code never unwraps. `expect_used` stays allowed (owner decision 2026-11-13): an `expect` with a message is an explicit invariant, an `unwrap` is not.
 
+`clippy::allow_attributes_without_reason` (owner decision 2026-11-15) makes the "every suppression says why" rule mechanical: an `#[allow(...)]` or `#[expect(...)]` without `reason = "..."` is itself a lint, so the rule no longer depends on a reviewer noticing a bare `#[allow]`.
+
+`allow-unwrap-in-tests` covers `#[test]` functions and `#[cfg(test)]` modules only (verified on 1.98.1: a helper function in `tests/x.rs` that unwraps fails `unwrap_used`, and the file fails `missing_docs` for the crate). The integration test package `tests/integration` of `v1-read-only-engine` D2 is therefore linted like production code: its helpers use `expect("...")`, its `pub` items carry doc comments, and its tests are one test binary (`tests/main.rs` with `mod` submodules) whose root carries the `//!` doc and, if needed, one `#![allow(clippy::unwrap_used, reason = "...")]`. Owner decision 2026-11-15; v1 task 3.6 follows it.
+
 *Alternative:* `clippy::pedantic` (rejected: a stream of style opinions the owner would have to adjudicate one by one).
 
 ### D7. `deny.toml` bans duplicate versions outright
