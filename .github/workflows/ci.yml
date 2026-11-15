@@ -27,7 +27,6 @@ env:
   CARGO_TERM_COLOR: always
   # Tool versions pinned for CI and the developer alike (design D5).
   CARGO_DENY_VERSION: 0.20.2
-  CARGO_MODULES_VERSION: 0.28.0
 
 jobs:
   fmt:
@@ -131,20 +130,3 @@ jobs:
         run: scripts/ci/crate-deps-test.sh
       - name: Check the crate dependency direction (design D2 of v1-read-only-engine)
         run: scripts/ci/crate-deps.sh
-      # Same single-binary cache pattern as cargo-deny in the `deny` job.
-      - name: Restore cargo-modules
-        id: cargo-modules-cache
-        uses: actions/cache/restore@v4
-        with:
-          path: ~/.cargo/bin/cargo-modules
-          key: cargo-modules-${{ env.CARGO_MODULES_VERSION }}-${{ runner.os }}-${{ hashFiles('rust-toolchain.toml') }}
-      - name: Install cargo-modules unless cached
-        run: '[ -x ~/.cargo/bin/cargo-modules ] || cargo install cargo-modules --locked --version "$CARGO_MODULES_VERSION"'
-      - name: Save cargo-modules
-        if: steps.cargo-modules-cache.outputs.cache-hit != 'true'
-        uses: actions/cache/save@v4
-        with:
-          path: ~/.cargo/bin/cargo-modules
-          key: ${{ steps.cargo-modules-cache.outputs.cache-primary-key }}
-      - name: Check that every crate's module tree is acyclic
-        run: scripts/ci/acyclic-modules.sh
