@@ -1,0 +1,86 @@
+# Quality gates. See openspec/changes/quality-gates/specs/ci-quality-gates/spec.md.
+#
+# One job per gate, each running the one command the README documents for
+# running that gate locally, so that a local and a CI verdict agree. Every
+# job name is a status check context required by the `protect-main`
+# ruleset; renaming a job also requires updating the ruleset.
+#
+# Only first-party actions are used. The toolchain comes from
+# `rust-toolchain.toml`, which the runner's rustup honors automatically.
+name: ci
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+  # Tool versions pinned for CI and the developer alike (design D5).
+  CARGO_DENY_VERSION: 0.20.2
+
+jobs:
+  fmt:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check formatting
+        run: cargo fmt --check
+
+  clippy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Cache build artifacts
+        uses: actions/cache@v4
+        with:
+          path: target
+          key: clippy-${{ runner.os }}-${{ hashFiles('rust-toolchain.toml', 'Cargo.lock') }}
+      - name: Lint the workspace, warnings are errors
+        run: cargo clippy --workspace --all-targets -- -D warnings
+
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Cache build artifacts
+        uses: actions/cache@v4
+        with:
+          path: target
+          key: test-${{ runner.os }}-${{ hashFiles('rust-toolchain.toml', 'Cargo.lock') }}
+      - name: Run the tests that need no external service
+        run: cargo test --workspace
+
+  doc:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Cache build artifacts
+        uses: actions/cache@v4
+        with:
+          path: target
+          key: doc-${{ runner.os }}-${{ hashFiles('rust-toolchain.toml', 'Cargo.lock') }}
+      - name: Build the documentation, warnings are errors
+        env:
+          RUSTDOCFLAGS: -D warnings
+        run: cargo doc --workspace --no-deps --document-private-items
+
+  deny:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      # Only the tool binary is cached, keyed on its version and the toolchain
+      # it was built with. The guard below is what makes the cache useful:
+      # cargo decides "already installed" from ~/.cargo/.crates.toml, which is
+      # not cached, and would otherwise rebuild the tool on every run.
+      - name: Cache cargo-deny
+        uses: actions/cache@v4
+        with:
+          path: ~/.cargo/bin/cargo-deny
+          key: cargo-deny-${{ env.CARGO_DENY_VERSION }}-${{ runner.os }}-${{ hashFiles('rust-toolchain.toml') }}
+      - name: Install cargo-deny unless cached
+        run: '[ -x ~/.cargo/bin/cargo-deny ] || cargo install cargo-deny --locked --version "$CARGO_DENY_VERSION"'
+      - name: Check advisories, licenses, duplicate versions, and sources
+        run: cargo deny check
