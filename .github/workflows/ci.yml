@@ -2,8 +2,9 @@
 #
 # One job per gate, each running the one command the README documents for
 # running that gate locally, so that a local and a CI verdict agree. Every
-# job name is a status check context required by the `protect-main`
-# ruleset; renaming a job also requires updating the ruleset.
+# job name is a status check context the owner adds to the `protect-main`
+# ruleset (quality-gates task 5.1); from then on renaming a job also
+# requires updating the ruleset.
 #
 # Only first-party actions are used. The toolchain comes from
 # `rust-toolchain.toml`, which the runner's rustup honors automatically.
@@ -11,6 +12,11 @@ name: ci
 
 on:
   pull_request:
+    branches: [main]
+  # A pull request can read only the caches of its own branch and of `main`,
+  # so the gates also run on `main` after a merge: that run saves the caches
+  # every later pull request starts from.
+  push:
     branches: [main]
 
 permissions:
@@ -38,6 +44,9 @@ jobs:
         with:
           path: target
           key: clippy-${{ runner.os }}-${{ hashFiles('rust-toolchain.toml', 'Cargo.lock') }}
+          # On a Cargo.lock change, start from the newest cache of this job
+          # and rebuild only what changed.
+          restore-keys: clippy-${{ runner.os }}-
       - name: Lint the workspace, warnings are errors
         run: cargo clippy --workspace --all-targets -- -D warnings
 
@@ -50,6 +59,9 @@ jobs:
         with:
           path: target
           key: test-${{ runner.os }}-${{ hashFiles('rust-toolchain.toml', 'Cargo.lock') }}
+          # On a Cargo.lock change, start from the newest cache of this job
+          # and rebuild only what changed.
+          restore-keys: test-${{ runner.os }}-
       - name: Run the tests that need no external service
         run: cargo test --workspace
 
@@ -62,6 +74,9 @@ jobs:
         with:
           path: target
           key: doc-${{ runner.os }}-${{ hashFiles('rust-toolchain.toml', 'Cargo.lock') }}
+          # On a Cargo.lock change, start from the newest cache of this job
+          # and rebuild only what changed.
+          restore-keys: doc-${{ runner.os }}-
       - name: Build the documentation, warnings are errors
         env:
           RUSTDOCFLAGS: -D warnings
