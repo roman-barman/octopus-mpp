@@ -63,14 +63,18 @@ manifest_of() {
 # add_dependency <crate> <table> <dependency>: adds a path dependency on
 # <dependency> to the <table> ("dependencies" or "dev-dependencies") of
 # <crate>'s manifest in the scratch workspace, replacing an existing entry
-# for the same dependency so the manifest stays valid TOML.
+# for the same dependency so the manifest stays valid TOML. The path is
+# computed from the two manifest directories, wherever the crates live.
 add_dependency() {
-  local manifest
+  local manifest target path line
   manifest="$(manifest_of "$1")"
-  local line="$3 = { path = \"../$3\" }"
-  sed -i "/^$3 = /d" "$manifest"
-  if grep -q "^\[$2\]$" "$manifest"; then
-    sed -i "/^\[$2\]$/a $line" "$manifest"
+  target="$(manifest_of "$3")"
+  path="$(python3 -I -c 'import os, sys; print(os.path.relpath(sys.argv[1], sys.argv[2]))' \
+    "$(dirname "$target")" "$(dirname "$manifest")")"
+  line="$3 = { path = \"$path\" }"
+  sed -i "/^$3[[:space:]]*=/d" "$manifest"
+  if grep -q "^\[$2\][[:space:]]*$" "$manifest"; then
+    sed -i "/^\[$2\][[:space:]]*$/a $line" "$manifest"
   else
     printf '\n[%s]\n%s\n' "$2" "$line" >> "$manifest"
   fi
