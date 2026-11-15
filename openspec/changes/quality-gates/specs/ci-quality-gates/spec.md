@@ -32,7 +32,7 @@ The `doc` job SHALL build the workspace documentation, including private items, 
 - **THEN** the `doc` job fails and names the link
 
 ### Requirement: Workspace lints
-Every crate SHALL inherit the workspace lint table, which SHALL forbid `unsafe_code`, deny `clippy::unwrap_used`, and warn on `missing_docs`, `unreachable_pub`, and `clippy::all`; CI SHALL treat the warnings as errors. A local `#[allow(...)]` SHALL carry a comment stating why.
+Every crate SHALL inherit the workspace lint table, which SHALL forbid `unsafe_code`, deny `clippy::unwrap_used`, and warn on `missing_docs`, `unreachable_pub`, `clippy::all`, and `clippy::allow_attributes_without_reason`; CI SHALL treat the warnings as errors. A local `#[allow(...)]` or `#[expect(...)]` SHALL carry a `reason = "..."` stating why.
 
 #### Scenario: unwrap in production code
 - **WHEN** a crate calls `.unwrap()` outside a `#[cfg(test)]` module
@@ -45,6 +45,10 @@ Every crate SHALL inherit the workspace lint table, which SHALL forbid `unsafe_c
 #### Scenario: Undocumented public item
 - **WHEN** a crate exports a `pub` item without a doc comment
 - **THEN** the `clippy` job fails
+
+#### Scenario: Suppression without a reason
+- **WHEN** a crate contains `#[allow(clippy::too_many_arguments)]` without a `reason`
+- **THEN** the `clippy` job fails and names the attribute
 
 ### Requirement: Dependency policy
 The `deny` job SHALL fail when any dependency has a known vulnerability, a license outside the project's allowlist, a source other than crates.io or an explicitly allowed git repository, or when two versions of the same crate are present in the lock file.

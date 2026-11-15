@@ -36,3 +36,6 @@ all = { level = "warn", priority = -1 }
 # `allow-unwrap-in-tests`). `expect` with a message stays allowed: it states
 # the invariant that `unwrap` leaves implicit (owner decision 2026-11-13).
 unwrap_used = "deny"
+# Every `#[allow]` and `#[expect]` states its `reason = "..."`; a suppression
+# without one is the lint (owner decision 2026-11-15).
+allow_attributes_without_reason = "warn"
