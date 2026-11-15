@@ -87,10 +87,16 @@ Every pull request runs the `ci` workflow (`.github/workflows/ci.yml`), one job 
 | `test` | `cargo test --workspace` | any test fails; tests that need the Compose stand are `#[ignore]` |
 | `doc` | `RUSTDOCFLAGS="-D warnings" cargo doc --workspace --no-deps --document-private-items` | any rustdoc warning, such as a broken intra-doc link |
 | `deny` | `cargo deny check` | a vulnerable dependency, a license outside the allowlist, two versions of one crate, or a source other than crates.io and the allowed Ballista repositories (`deny.toml`) |
+| `deps` | `scripts/ci/crate-deps-test.sh && scripts/ci/crate-deps.sh && scripts/ci/acyclic-modules.sh` | a workspace crate depends on another outside the allowed edges of design D2 of `v1-read-only-engine` (test-only dependencies are not checked), or two modules of one crate import each other as modules |
 
-`cargo deny` is not part of the toolchain; install once the version `ci.yml` pins in `CARGO_DENY_VERSION`: `cargo install cargo-deny --locked --version 0.20.2`.
+`cargo deny` and `cargo modules` are not part of the toolchain; install once the versions `ci.yml` pins in `CARGO_DENY_VERSION` and `CARGO_MODULES_VERSION`:
 
-The lints every crate inherits are in `[workspace.lints]` of the root `Cargo.toml`: `unsafe_code` is forbidden, `clippy::unwrap_used` is an error outside tests, and `missing_docs`, `unreachable_pub`, and `clippy::all` are warnings that CI turns into errors. A local `#[allow(...)]` is a decision, so every one carries a comment stating why. The gates are specified in the `ci-quality-gates` spec of the `quality-gates` change.
+```
+cargo install cargo-deny --locked --version 0.20.2
+cargo install cargo-modules --locked --version 0.28.0
+```
+
+The lints every crate inherits are in `[workspace.lints]` of the root `Cargo.toml`: `unsafe_code` is forbidden, `clippy::unwrap_used` is an error outside tests, and `missing_docs`, `unreachable_pub`, and `clippy::all` are warnings that CI turns into errors. A local `#[allow(...)]` or `#[expect(...)]` is a decision, so every one states its `reason = "..."`; `clippy::allow_attributes_without_reason` rejects one without it. The gates are specified in the `ci-quality-gates` spec of the `quality-gates` change.
 
 ## Building blocks
 
