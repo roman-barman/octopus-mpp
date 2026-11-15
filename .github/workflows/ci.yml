@@ -11,8 +11,9 @@
 name: ci
 
 on:
+  # Every pull request, whatever its base: an implementation PR stacked on a
+  # `spec/<change>` branch gets its verdict before it is retargeted to `main`.
   pull_request:
-    branches: [main]
   # A pull request can read only the caches of its own branch and of `main`,
   # so the gates also run on `main` after a merge: that run saves the caches
   # every later pull request starts from.
@@ -39,10 +40,14 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Cache build artifacts
+      - name: Cache downloaded crates and build artifacts
         uses: actions/cache@v4
         with:
-          path: target
+          path: |
+            ~/.cargo/registry/index
+            ~/.cargo/registry/cache
+            ~/.cargo/git/db
+            target
           key: clippy-${{ runner.os }}-${{ hashFiles('rust-toolchain.toml', 'Cargo.lock') }}
           # On a Cargo.lock change, start from the newest cache of this job
           # and rebuild only what changed.
@@ -54,10 +59,14 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Cache build artifacts
+      - name: Cache downloaded crates and build artifacts
         uses: actions/cache@v4
         with:
-          path: target
+          path: |
+            ~/.cargo/registry/index
+            ~/.cargo/registry/cache
+            ~/.cargo/git/db
+            target
           key: test-${{ runner.os }}-${{ hashFiles('rust-toolchain.toml', 'Cargo.lock') }}
           # On a Cargo.lock change, start from the newest cache of this job
           # and rebuild only what changed.
@@ -69,10 +78,14 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Cache build artifacts
+      - name: Cache downloaded crates and build artifacts
         uses: actions/cache@v4
         with:
-          path: target
+          path: |
+            ~/.cargo/registry/index
+            ~/.cargo/registry/cache
+            ~/.cargo/git/db
+            target
           key: doc-${{ runner.os }}-${{ hashFiles('rust-toolchain.toml', 'Cargo.lock') }}
           # On a Cargo.lock change, start from the newest cache of this job
           # and rebuild only what changed.
@@ -89,13 +102,22 @@ jobs:
       # Only the tool binary is cached, keyed on its version and the toolchain
       # it was built with. The guard below is what makes the cache useful:
       # cargo decides "already installed" from ~/.cargo/.crates.toml, which is
-      # not cached, and would otherwise rebuild the tool on every run.
-      - name: Cache cargo-deny
-        uses: actions/cache@v4
+      # not cached, and would otherwise rebuild the tool on every run. Restore
+      # and save are separate steps so that the binary is saved even when the
+      # check itself fails; `actions/cache` alone saves only on a green job.
+      - name: Restore cargo-deny
+        id: cargo-deny-cache
+        uses: actions/cache/restore@v4
         with:
           path: ~/.cargo/bin/cargo-deny
           key: cargo-deny-${{ env.CARGO_DENY_VERSION }}-${{ runner.os }}-${{ hashFiles('rust-toolchain.toml') }}
       - name: Install cargo-deny unless cached
         run: '[ -x ~/.cargo/bin/cargo-deny ] || cargo install cargo-deny --locked --version "$CARGO_DENY_VERSION"'
+      - name: Save cargo-deny
+        if: steps.cargo-deny-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: ~/.cargo/bin/cargo-deny
+          key: ${{ steps.cargo-deny-cache.outputs.cache-primary-key }}
       - name: Check advisories, licenses, duplicate versions, and sources
         run: cargo deny check
