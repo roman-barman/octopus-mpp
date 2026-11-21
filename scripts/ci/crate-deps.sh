@@ -4,8 +4,10 @@
 # Reads the declared dependencies of every workspace crate from
 # `cargo metadata --no-deps` (no resolution, so no network and no complete
 # lock file needed) and compares the edges between workspace crates with
-# the allowed edges of design D2 of `v1-read-only-engine`, hard-coded below
-# as the single source of truth. A workspace crate missing from the table
+# the allowed edges of the "Crate dependency direction" requirement of
+# openspec/specs/ci-quality-gates/spec.md, hard-coded below. The table here
+# and the table in that requirement say the same thing and are changed
+# together, in one OpenSpec change. A workspace crate missing from the table
 # may depend on no other workspace crate. Every forbidden edge is printed.
 #
 # Only normal and build dependencies are edges: a `[dev-dependencies]` entry
@@ -34,8 +36,11 @@ program=$(cat <<'PY'
 import json
 import sys
 
-# Design D2 of v1-read-only-engine: which workspace crates each crate may
-# depend on. A crate missing here may depend on no workspace crate.
+# Which workspace crates each crate may depend on: the table of the
+# "Crate dependency direction" requirement of
+# openspec/specs/ci-quality-gates/spec.md.
+# A crate missing here (octopus-config, or a new crate) may depend on no
+# workspace crate.
 ALLOWED = {
     "octopus-storage": {"octopus-config"},
     "octopus-codec": {"octopus-config", "octopus-storage"},
@@ -70,9 +75,18 @@ for package in metadata["packages"]:
             forbidden.append(f"{source} -> {target}")
 
 if forbidden:
-    print("forbidden crate dependencies (design D2 of v1-read-only-engine):")
+    print("forbidden crate dependencies (see \"Crate dependency direction\" "
+          "in openspec/specs/ci-quality-gates/spec.md):")
     for edge in forbidden:
         print(f"  {edge}")
+    # A crate without an entry (a new crate, or octopus-config) is the usual
+    # way to get here; say what has to change.
+    unlisted = sorted({edge.split(" -> ")[0] for edge in forbidden} - set(ALLOWED))
+    for name in unlisted:
+        print(f"{name} has no allowed workspace dependencies: remove the "
+              "dependency, or, if the edge is intended, change ALLOWED in "
+              "scripts/ci/crate-deps.sh and the table in the spec in one "
+              "OpenSpec change")
     sys.exit(1)
 print(f"crate dependency direction ok: {checked} workspace edges checked")
 PY

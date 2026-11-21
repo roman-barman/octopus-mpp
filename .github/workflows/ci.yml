@@ -128,5 +128,5 @@ jobs:
       - uses: actions/checkout@v4
       - name: Test the crate dependency direction gate
         run: scripts/ci/crate-deps-test.sh
-      - name: Check the crate dependency direction (design D2 of v1-read-only-engine)
+      - name: Check the "Crate dependency direction" requirement of the ci-quality-gates spec
         run: scripts/ci/crate-deps.sh
