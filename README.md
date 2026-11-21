@@ -74,11 +74,11 @@ The repository ships its git hooks in `scripts/hooks/`. Install them once per cl
 scripts/hooks/install.sh
 ```
 
-They catch the project's rules before CI does: `pre-commit` refuses commits on `main` or on a branch not named `<type>/<topic>` and checks `cargo fmt` on the staged tree; `commit-msg` requires an imperative subject of at most 72 characters and a body line citing the OpenSpec change and tasks (`quality-gates: 2.2`), or, for the files the owner exempted from OpenSpec, a line `No OpenSpec change: <reason>`; `pre-push` refuses pushes to `main`. Everything else (formatting again, clippy, tests, docs, the dependency policy, the PR size limit) is checked by CI on the pull request; see [Quality gates](#quality-gates). The hooks have no skip flag; `--no-verify` is the only bypass and is not used in this project. Their behavior is specified in the `git-hooks` spec of the `quality-gates` change and tested by `scripts/hooks/hooks-test.sh`.
+They catch the project's rules before CI does: `pre-commit` refuses commits on `main` or on a branch not named `<type>/<topic>` and checks `cargo fmt` on the staged tree; `commit-msg` requires an imperative subject of at most 72 characters and a body line citing the OpenSpec change and tasks (`quality-gates: 2.2`), or, for the files the owner exempted from OpenSpec, a line `No OpenSpec change: <reason>`; `pre-push` refuses pushes to `main`. Everything else (formatting again, clippy, tests, docs, the dependency policy, the PR size limit) is checked by CI on the pull request; see [Quality gates](#quality-gates). The hooks have no skip flag; `--no-verify` is the only bypass and is not used in this project. Their behavior is specified in `openspec/specs/git-hooks/spec.md` and tested by `scripts/hooks/hooks-test.sh`.
 
 ## Quality gates
 
-Every pull request runs the `ci` workflow (`.github/workflows/ci.yml`), one job per gate; each job name is a status check the owner requires in the `protect-main` ruleset once the job has run (task 5.1 of `quality-gates`). Each gate is one command that gives the same verdict locally, with the toolchain pinned in `rust-toolchain.toml`:
+Every pull request runs the `ci` workflow (`.github/workflows/ci.yml`), one job per gate; each job name is a required status check in the `protect-main` ruleset. Each gate is one command that gives the same verdict locally, with the toolchain pinned in `rust-toolchain.toml`:
 
 | Gate | Local command | Fails when |
 |---|---|---|
@@ -95,7 +95,7 @@ Every pull request runs the `ci` workflow (`.github/workflows/ci.yml`), one job 
 cargo install cargo-deny --locked --version 0.20.2
 ```
 
-The lints every crate inherits are in `[workspace.lints]` of the root `Cargo.toml`: `unsafe_code` is forbidden, `clippy::unwrap_used` is an error outside tests, and `missing_docs`, `unreachable_pub`, and `clippy::all` are warnings that CI turns into errors. A local `#[allow(...)]` or `#[expect(...)]` is a decision, so every one states its `reason = "..."`; `clippy::allow_attributes_without_reason` rejects one without it. The gates are specified in the `ci-quality-gates` spec of the `quality-gates` change.
+The lints every crate inherits are in `[workspace.lints]` of the root `Cargo.toml`: `unsafe_code` is forbidden, `clippy::unwrap_used` is an error outside tests, and `missing_docs`, `unreachable_pub`, and `clippy::all` are warnings that CI turns into errors. A local `#[allow(...)]` or `#[expect(...)]` is a decision, so every one states its `reason = "..."`; `clippy::allow_attributes_without_reason` rejects one without it. The gates are specified in `openspec/specs/ci-quality-gates/spec.md`.
 
 ## Building blocks
 

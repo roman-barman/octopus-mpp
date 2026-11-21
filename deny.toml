@@ -3,9 +3,9 @@
 # Run locally with `cargo deny check`, on the tool version `ci.yml` pins
 # (`CARGO_DENY_VERSION`); the README has the install command.
 #
-# See openspec/changes/quality-gates/design.md D7. Every relaxation added here
-# (a new license, a `skip` entry) is a reviewed change with a comment saying
-# which dependency needs it.
+# See D7 of openspec/changes/archive/2026-11-21-quality-gates/design.md.
+# Every relaxation added here (a new license, a `skip` entry) is a reviewed
+# change with a comment saying which dependency needs it.
 
 [graph]
 # Check the workspace as it is built on Linux x86-64, the only platform the

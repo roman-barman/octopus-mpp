@@ -1,10 +1,9 @@
-# Quality gates. See openspec/changes/quality-gates/specs/ci-quality-gates/spec.md.
+# Quality gates. See openspec/specs/ci-quality-gates/spec.md.
 #
 # One job per gate, each running the one command the README documents for
 # running that gate locally, so that a local and a CI verdict agree. Every
-# job name is a status check context the owner adds to the `protect-main`
-# ruleset (quality-gates task 5.1); from then on renaming a job also
-# requires updating the ruleset.
+# job name is a required status check context in the `protect-main` ruleset,
+# so renaming a job also requires the owner to update the ruleset.
 #
 # Only first-party actions are used. The toolchain comes from
 # `rust-toolchain.toml`, which the runner's rustup honors automatically.
@@ -25,7 +24,8 @@ permissions:
 
 env:
   CARGO_TERM_COLOR: always
-  # Tool versions pinned for CI and the developer alike (design D5).
+  # Tool versions pinned for CI and the developer alike; see D5 of
+  # openspec/changes/archive/2026-11-21-quality-gates/design.md.
   CARGO_DENY_VERSION: 0.20.2
 
 jobs:
