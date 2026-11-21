@@ -33,7 +33,7 @@ Each numbered group is one pull request (design, Migration Plan). Groups 2 and 3
 
 ## 5. Repository settings (owner)
 
-- [ ] 5.1 Owner adds `fmt`, `clippy`, `test`, `doc`, `deny`, `deps` as required status checks to ruleset `protect-main` (id 26716811) after each has produced its first result; verify `gh api repos/roman-barman/octopus-mpp/rulesets/26716811` lists seven contexts including `pr-size`, and a PR with one failing gate shows as not mergeable
+- [x] 5.1 Owner adds `fmt`, `clippy`, `test`, `doc`, `deny`, `deps` as required status checks to ruleset `protect-main` (id 26716811) after each has produced its first result; verify `gh api repos/roman-barman/octopus-mpp/rulesets/26716811` lists seven contexts including `pr-size`, and a PR with one failing gate shows as not mergeable
 
 ## Workflow follow-up
 
