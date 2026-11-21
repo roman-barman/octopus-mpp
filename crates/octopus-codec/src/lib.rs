@@ -8,3 +8,12 @@
 //! The pass-through codecs and the options arrive with task 2.5 of the
 //! `v1-read-only-engine` change, the Delta branch with task 9.2; until then
 //! the crate is an empty workspace member.
+
+#[cfg(test)]
+mod required_checks_probe {
+    /// Fails on purpose: proves a red `test` gate blocks the merge.
+    #[test]
+    fn fails_on_purpose() {
+        assert_eq!(1, 2, "probe for quality-gates task 5.1");
+    }
+}
