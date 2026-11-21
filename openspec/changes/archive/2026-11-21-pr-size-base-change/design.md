@@ -21,9 +21,9 @@ Alternative considered: a job-level `if: github.event.action != 'edited' || gith
 
 Alternative considered: filter at the step level (the job runs, the measuring step is skipped). Rejected for the same reason: the job would succeed without measuring.
 
-### D2. A pull request that conflicts with its new base gets no run
+### D2. A pull request that conflicts with its new base may get no run
 
-GitHub starts no `pull_request` workflow for a pull request with merge conflicts, so a retarget that produces a conflict leaves the old verdict in place. In the usual case this needs no handling: a conflicting pull request cannot be merged, and the rebase that resolves the conflict is a push, which triggers `synchronize` and a fresh measurement. One gap remains and is accepted: if the conflict disappears because the base branch changed, not the pull request, GitHub sends no event, and the pull request becomes mergeable with the verdict of its old base. The agent rules close it in practice (a retargeted pull request is rebased before review), and closing it in CI would need a scheduled re-check of open pull requests.
+GitHub's documentation says no `pull_request` workflow starts for a pull request with merge conflicts, so a retarget that produces a conflict can leave the old verdict in place. It is not a rule to rely on in either direction: on 2026-11-21 the implementation pull request (#29) was retargeted automatically, was reported as conflicting with `main`, and still got a run two seconds later (task 1.4). In the usual case this needs no handling: a conflicting pull request cannot be merged, and the rebase that resolves the conflict is a push, which triggers `synchronize` and a fresh measurement. One gap remains and is accepted: if the conflict disappears because the base branch changed, not the pull request, GitHub sends no event, and the pull request becomes mergeable with the verdict of its old base. The agent rules close it in practice (a retargeted pull request is rebased before review), and closing it in CI would need a scheduled re-check of open pull requests.
 
 ### D4. A red verdict right after a parent's rebase merge is expected
 
