@@ -7,7 +7,19 @@ name: pr-size
 on:
   pull_request:
     # labeled/unlabeled re-run the gate when the owner toggles size/override.
-    types: [opened, synchronize, reopened, labeled, unlabeled]
+    # edited re-runs it when the base branch changes (a stacked pull request
+    # retargeted to main), so that the verdict belongs to the current base.
+    # GitHub sends edited for title and body edits too, and the gate
+    # deliberately runs on those as well: skipping them with an `if` would
+    # report a skipped check, which a required check accepts as passed.
+    types: [opened, synchronize, reopened, labeled, unlabeled, edited]
+
+# One run per pull request at a time. A newer event (a push, a base change,
+# a label) cancels the run of an older one, so the run queued last, which
+# carries the current base and labels, decides the verdict.
+concurrency:
+  group: pr-size-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
 
 permissions:
   contents: read
