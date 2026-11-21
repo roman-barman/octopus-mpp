@@ -20,7 +20,8 @@ repository = "https://github.com/roman-barman/octopus-mpp"
 # Lints every crate inherits with `[lints] workspace = true`. Warnings stay
 # warnings in a local `cargo build`; CI and the documented commands pass
 # `-D warnings`, so the same code is red there. A local `#[allow(...)]`
-# states its `reason = "..."`. See openspec/changes/archive/2026-11-21-quality-gates/design.md D6.
+# states its `reason = "..."`. See D6 of
+# openspec/changes/archive/2026-11-21-quality-gates/design.md.
 [workspace.lints.rust]
 # No unsafe anywhere: the engine is glue over DataFusion and Ballista.
 unsafe_code = "forbid"
