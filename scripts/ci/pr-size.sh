@@ -6,7 +6,11 @@
 # in one sitting. See openspec/specs/pr-size-gate/spec.md for the contract.
 #
 # Usage:
-#   scripts/ci/pr-size.sh <base-ref>          e.g. scripts/ci/pr-size.sh origin/main
+#   scripts/ci/pr-size.sh <base-ref>
+#
+# <base-ref> is the pull request's base branch as a remote-tracking ref:
+# origin/main for most pull requests, origin/<parent-branch> for one stacked
+# on another branch. CI passes origin/<the pull request's base branch>.
 #
 # Environment (all optional):
 #   PR_SIZE_MAX_LINES   maximum added + deleted lines, default 500
