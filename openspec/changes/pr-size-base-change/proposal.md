@@ -25,7 +25,7 @@ The owner approved the fix on 2026-11-21.
 
 ## Impact
 
-- Files: `.github/workflows/pr-size.yml` (one trigger type and its comment), `README.md` (one section), `scripts/ci/pr-size.sh` (usage comment only), the delta spec for `pr-size-gate`.
+- Files: `.github/workflows/pr-size.yml` (one trigger type, a `concurrency` group that can cancel a run of the required check, and their comments), `README.md` (one section), `scripts/ci/pr-size.sh` (usage comment only), the delta spec for `pr-size-gate`.
 - The job name `pr-size` and the required check context do not change. `scripts/ci/pr-size.sh` measures exactly as before.
 - `.github/workflows/ci.yml` is not changed, and that is a known gap, not an equivalence: its six gates build GitHub's merge of the head into the base, so after a retarget their verdicts also belong to the old base. They catch up at the rebase the agent rules require after a parent merges, which is a push. Whether `ci.yml` should also run on `edited` (six jobs on every body edit) is left to the owner as a separate decision.
-- `CLAUDE.md` says, once PR #24 is merged, that no check re-runs on a base change. That sentence becomes inexact for `pr-size` and is corrected by a `docs/` PR outside this change (workflow follow-up).
+- `CLAUDE.md` says, once PR #24 is merged, that no check re-runs on a base change. That sentence becomes inexact for `pr-size` and is corrected by a `docs/` PR outside this change (workflow follow-up). The same PR #24 already makes the size-limit bullet name the PR's base branch instead of `main`.

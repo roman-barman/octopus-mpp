@@ -23,11 +23,15 @@ Alternative considered: filter at the step level (the job runs, the measuring st
 
 ### D2. A pull request that conflicts with its new base gets no run
 
-GitHub starts no `pull_request` workflow for a pull request with merge conflicts, so a retarget that produces a conflict leaves the old verdict in place. This needs no handling: a conflicting pull request cannot be merged, and the rebase that resolves the conflict is a push, which triggers `synchronize` and a fresh measurement.
+GitHub starts no `pull_request` workflow for a pull request with merge conflicts, so a retarget that produces a conflict leaves the old verdict in place. In the usual case this needs no handling: a conflicting pull request cannot be merged, and the rebase that resolves the conflict is a push, which triggers `synchronize` and a fresh measurement. One gap remains and is accepted: if the conflict disappears because the base branch changed, not the pull request, GitHub sends no event, and the pull request becomes mergeable with the verdict of its old base. The agent rules close it in practice (a retargeted pull request is rebased before review), and closing it in CI would need a scheduled re-check of open pull requests.
+
+### D4. A red verdict right after a parent's rebase merge is expected
+
+The repository merges by rebase, so the parent's commits land on `main` with new ids. A stacked pull request retargeted to `main` still contains the parent's original commits, the merge-base stays where it was, and the gate counts the parent's lines until the branch is rebased. A gate that turns red at that moment is correct: it tells the author to rebase, after which only the pull request's own lines remain.
 
 ### D3. One run per pull request at a time
 
-The workflow gets `concurrency: { group: pr-size-${{ github.event.pull_request.number }}, cancel-in-progress: true }`. Without it a push followed at once by a retarget starts two overlapping runs, one per base, and which of them the required check ends up showing depends on which finishes last. With it the run of the older event is cancelled, so the newest event, which carries the current base and the current labels, decides. A cancelled run leaves the check unsatisfied only until its successor finishes, a few seconds later.
+The workflow gets `concurrency: { group: pr-size-${{ github.event.pull_request.number }}, cancel-in-progress: true }`. Without it a push followed at once by a retarget starts two overlapping runs, one per base, and which of them the required check ends up showing depends on which finishes last. With it the run that entered the group earlier is cancelled, so the run queued last decides; that is normally the newest event, which carries the current base and the current labels. GitHub does not promise to queue two events of the same second in order, so this narrows the race, it does not remove it. A cancelled run leaves the check unsatisfied only until its successor finishes, a few seconds later.
 
 ## Risks / Trade-offs
 
