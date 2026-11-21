@@ -58,10 +58,10 @@ Project rules worth knowing:
 
 ## Pull request size
 
-Every pull request is measured in CI (`pr-size` check) and fails when it changes more than 500 lines (additions + deletions) or 20 files, not counting `Cargo.lock` and `openspec/changes/archive/`. The owner has to be able to read every PR in full. Check before pushing:
+Every pull request is measured in CI (`pr-size` check) and fails when it changes more than 500 lines (additions + deletions) or 20 files, not counting `Cargo.lock` and `openspec/changes/archive/`. The owner has to be able to read every PR in full. The size is measured from the merge-base with the pull request's base branch, and the gate runs again when that base changes. Check before pushing, with the base branch the pull request will have (`main`, unless it is stacked on another branch):
 
 ```
-scripts/ci/pr-size.sh origin/main
+scripts/ci/pr-size.sh origin/<base-branch>    # usually: scripts/ci/pr-size.sh origin/main
 ```
 
 The only exception is the `size/override` label, which the project owner adds after a written justification why the PR cannot be made smaller. The gate's behavior is specified in [`openspec/specs/pr-size-gate/spec.md`](openspec/specs/pr-size-gate/spec.md).
