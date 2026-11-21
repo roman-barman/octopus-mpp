@@ -3,7 +3,7 @@
 ## ADDED Requirements
 
 ### Requirement: Base branch change re-runs the gate
-The gate SHALL re-run when the base branch of a pull request changes, and SHALL then measure against the new base branch, so that the reported verdict always belongs to the base the pull request currently has.
+The gate SHALL re-run when the base branch of a pull request changes, and SHALL then measure against the new base branch, so that a mergeable pull request does not keep a verdict computed for a base it no longer has. A pull request that conflicts with its new base gets no run until the conflict is resolved by a push, which re-runs the gate.
 
 #### Scenario: Stacked pull request retargeted to main
 - **GIVEN** a pull request stacked on a branch that is ahead of `main`, with a passing gate result
@@ -12,4 +12,9 @@ The gate SHALL re-run when the base branch of a pull request changes, and SHALL 
 
 #### Scenario: Title or body edited
 - **WHEN** only the title or the body of a pull request is edited
-- **THEN** the gate re-runs and reports the same verdict as before
+- **THEN** the gate re-runs and measures against the current tip of the base branch
+
+#### Scenario: Retarget produces a conflict
+- **GIVEN** a pull request whose base branch is changed to a branch it conflicts with
+- **WHEN** the conflict is resolved by rebasing and pushing the branch
+- **THEN** the gate runs on the push and measures against the new base branch
