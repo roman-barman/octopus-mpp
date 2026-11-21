@@ -9,7 +9,7 @@
 - Goal: after a base change, the `pr-size` check shows a verdict for the new base without anyone pushing.
 - Goal: the documented local command gives the number CI gives, for a stacked pull request too.
 - Non-goal: changing how the size is measured, the limits, the exclusions, or the override label.
-- Non-goal: making the six `ci.yml` gates re-run on a base change; they do not depend on the base.
+- Non-goal: making the six `ci.yml` gates re-run on a base change. They do depend on the base (the default checkout of a `pull_request` run is the merge of head into base), so this is a gap left open on purpose: six jobs on every body edit is a cost the owner should weigh separately, and the rebase after a parent merges re-runs them anyway.
 
 ## Decisions
 
@@ -25,7 +25,11 @@ Alternative considered: filter at the step level (the job runs, the measuring st
 
 GitHub starts no `pull_request` workflow for a pull request with merge conflicts, so a retarget that produces a conflict leaves the old verdict in place. This needs no handling: a conflicting pull request cannot be merged, and the rebase that resolves the conflict is a push, which triggers `synchronize` and a fresh measurement.
 
+### D3. One run per pull request at a time
+
+The workflow gets `concurrency: { group: pr-size-${{ github.event.pull_request.number }}, cancel-in-progress: true }`. Without it a push followed at once by a retarget starts two overlapping runs, one per base, and which of them the required check ends up showing depends on which finishes last. With it the run of the older event is cancelled, so the newest event, which carries the current base and the current labels, decides. A cancelled run leaves the check unsatisfied only until its successor finishes, a few seconds later.
+
 ## Risks / Trade-offs
 
-- [GitHub retargets a stacked pull request automatically when its base branch is deleted after a merge; whether that sends `edited` is taken from GitHub's documentation, not observed] → Task 1.3 observes the manual retarget (`gh pr edit --base`), which is the same event type. If the automatic retarget turns out not to trigger the workflow, the rebase the agent rules require after a parent merges still does.
+- [GitHub retargets a stacked pull request automatically when its parent is merged and the parent's branch deleted; whether that sends `edited` is not documented clearly] → It cannot be probed with throwaway pull requests, because it needs a real merge (deleting an unmerged base branch closes the pull request instead). Task 1.4 observes it on this change itself: the implementation pull request is opened stacked on the `spec/pr-size-base-change` branch, and the owner's merge of the spec pull request is the retarget. If no run starts, the requirement is narrowed to manual base changes before the change is archived; the rebase the agent rules require after a parent merges re-runs the gate either way.
 - [Extra runs on body edits] → A few seconds each; accepted in D1.
