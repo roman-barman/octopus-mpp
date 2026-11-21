@@ -3,7 +3,7 @@
 ## ADDED Requirements
 
 ### Requirement: Base branch change re-runs the gate
-The gate SHALL re-run when the base branch of a pull request changes, and SHALL then measure against the new base branch, so that a mergeable pull request does not keep a verdict computed for a base it no longer has. A pull request that conflicts with its new base gets no run; the gate runs again at the next push to the pull request.
+The gate SHALL re-run when the base branch of a pull request changes, and SHALL then measure against the new base branch, so that a mergeable pull request does not keep a verdict computed for a base it no longer has. GitHub may start no run for a pull request that conflicts with its new base; the gate then runs again at the next push to the pull request.
 
 #### Scenario: Stacked pull request retargeted to main
 - **GIVEN** a pull request stacked on a branch that is ahead of `main`, with a passing gate result
