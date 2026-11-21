@@ -18,7 +18,11 @@ The CI SHALL run on pull requests without any filter on the base branch, and on 
 - **THEN** all six gates run on `main`
 
 ### Requirement: Crate dependency direction
-The `deps` job SHALL fail when a workspace crate depends on another workspace crate outside the allowed edges below. A workspace crate missing from the table SHALL depend on no other workspace crate. Only normal and build dependencies are edges; `[dev-dependencies]` are not checked.
+The `deps` job SHALL fail when a workspace crate depends on another workspace crate outside the allowed edges listed in the table of the "Edge table" scenario. A workspace crate missing from the table SHALL depend on no other workspace crate. Only normal and build dependencies are edges; `[dev-dependencies]` are not checked.
+
+#### Scenario: Edge table
+- **WHEN** every workspace crate listed in this table has normal and build dependencies only on the workspace crates its row names, and every workspace crate not listed has none on any workspace crate
+- **THEN** the `deps` job passes
 
 | Crate | May depend on |
 |---|---|

@@ -87,7 +87,7 @@ Every pull request runs the `ci` workflow (`.github/workflows/ci.yml`), one job 
 | `test` | `cargo test --workspace` | any test fails; tests that need the Compose stand are `#[ignore]` |
 | `doc` | `RUSTDOCFLAGS="-D warnings" cargo doc --workspace --no-deps --document-private-items` | any rustdoc warning, such as a broken intra-doc link |
 | `deny` | `cargo deny check` | a vulnerable dependency, a license outside the allowlist, two versions of one crate, or a source other than crates.io and the allowed Ballista repositories (`deny.toml`) |
-| `deps` | `scripts/ci/crate-deps-test.sh && scripts/ci/crate-deps.sh` | a workspace crate depends on another outside the allowed edges of design D2 of `v1-read-only-engine` (test-only dependencies are not checked) |
+| `deps` | `scripts/ci/crate-deps-test.sh && scripts/ci/crate-deps.sh` | a workspace crate depends on another outside the allowed edges listed in the "Crate dependency direction" requirement of `openspec/specs/ci-quality-gates/spec.md` (test-only dependencies are not checked) |
 
 `cargo deny` is not part of the toolchain; install once the version `ci.yml` pins in `CARGO_DENY_VERSION`:
 
