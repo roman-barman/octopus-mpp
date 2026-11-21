@@ -15,8 +15,13 @@ on:
     types: [opened, synchronize, reopened, labeled, unlabeled, edited]
 
 # One run per pull request at a time. A newer event (a push, a base change,
-# a label) cancels the run of an older one, so the run queued last, which
-# carries the current base and labels, decides the verdict.
+# a label, an edit of the title or body) cancels the run of an older one, so
+# the run queued last decides the verdict. That is normally the newest
+# event, with the current base and labels; GitHub does not promise the order
+# of two events of the same second, so this narrows that race, it does not
+# remove it. A cancelled run shows the check as cancelled until its
+# successor finishes a few seconds later: watch the newest run, not the one
+# a push started.
 concurrency:
   group: pr-size-${{ github.event.pull_request.number }}
   cancel-in-progress: true
