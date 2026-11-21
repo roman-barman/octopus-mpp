@@ -3,14 +3,14 @@
 ## MODIFIED Requirements
 
 ### Requirement: One required check per gate
-The CI SHALL run on every pull request, whatever its base branch, and on every push to `main`, with one job per gate, named `fmt`, `clippy`, `test`, `doc`, `deny`, and `deps`, so that each job name can be a required status check and a failure names the gate that failed. The repository ruleset SHALL require these six checks for pull requests targeting `main`.
+The CI SHALL run on pull requests without any filter on the base branch, and on every push to `main`, with one job per gate, named `fmt`, `clippy`, `test`, `doc`, `deny`, and `deps`, so that each job name can be a required status check and a failure names the gate that failed. The repository ruleset SHALL require these six checks for pull requests targeting `main`.
 
 #### Scenario: One gate fails
 - **WHEN** a pull request targeting `main` fails only the `doc` gate
 - **THEN** the `doc` check is reported as failed, the other five as passed, and the PR is not mergeable
 
 #### Scenario: Stacked pull request
-- **WHEN** a pull request targets a branch other than `main`, such as a `spec/<change>` branch
+- **WHEN** a pull request that has no conflict with its base targets a branch other than `main`, such as a `spec/<change>` branch
 - **THEN** all six gates run on it and report their verdicts
 
 #### Scenario: Push to main
@@ -43,6 +43,10 @@ The `deps` job SHALL fail when a workspace crate depends on another workspace cr
 #### Scenario: Test-only dependency
 - **WHEN** a crate lists another workspace crate only under `[dev-dependencies]`
 - **THEN** the edge is not checked and the `deps` job passes
+
+#### Scenario: Build dependency
+- **WHEN** `octopus-executor` lists `octopus-catalog` only under `[build-dependencies]`
+- **THEN** the `deps` job fails and names the forbidden edge
 
 #### Scenario: Crate missing from the table
 - **WHEN** a new workspace crate that the table does not list depends on `octopus-config`
