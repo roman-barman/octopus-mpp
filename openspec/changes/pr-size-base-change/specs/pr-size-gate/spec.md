@@ -18,3 +18,16 @@ The gate SHALL re-run when the base branch of a pull request changes, and SHALL 
 - **GIVEN** a pull request whose base branch is changed to a branch it conflicts with
 - **WHEN** the conflict is resolved by rebasing and pushing the branch
 - **THEN** the gate runs on the push and measures against the new base branch
+
+### Requirement: Every run uses the current base branch and labels
+The gate SHALL measure against the base branch the pull request has at the time the job runs, and SHALL honor the `size/override` label only if the pull request carries it at that time, whatever the event that started or restarted the run said.
+
+#### Scenario: Old run re-run after a retarget
+- **GIVEN** a pull request whose gate passed against a former base branch and whose base branch has since been changed to `main`
+- **WHEN** the old passing run is re-run
+- **THEN** it measures the diff from the merge-base with `main`
+
+#### Scenario: Old run re-run after the label was removed
+- **GIVEN** an oversized pull request whose gate passed while it carried the `size/override` label, and the label has since been removed
+- **WHEN** the old passing run is re-run
+- **THEN** it fails
