@@ -14,16 +14,17 @@ on:
     # report a skipped check, which a required check accepts as passed.
     types: [opened, synchronize, reopened, labeled, unlabeled, edited]
 
-# One run per pull request at a time. A newer event (a push, a base change,
-# a label, an edit of the title or body) cancels the run of an older one, so
-# the run queued last decides the verdict. That is normally the newest
-# event, with the current base and labels; GitHub does not promise the order
-# of two events of the same second, so this narrows that race, it does not
-# remove it. A cancelled run shows the check as cancelled until its
-# successor finishes a few seconds later: watch the newest run, not the one
-# a push started.
+# One run per pull request and head commit at a time. A newer event for the
+# same commit (a base change, a label, an edit of the title or body) cancels
+# the run of an older one, so the run queued last decides the verdict. That
+# is normally the newest event; GitHub does not promise the order of two
+# events of the same second, so this narrows that race, it does not remove
+# it. A cancelled run shows the check as cancelled until its successor
+# finishes a few seconds later: watch the newest run. The head commit is in
+# the key so that re-running an old run, whose result belongs to an old
+# commit, cannot cancel the run of the current head.
 concurrency:
-  group: pr-size-${{ github.event.pull_request.number }}
+  group: pr-size-${{ github.event.pull_request.number }}-${{ github.event.pull_request.head.sha }}
   cancel-in-progress: true
 
 permissions:
@@ -54,18 +55,37 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
+          MEASURED_SHA: ${{ github.event.pull_request.head.sha }}
         # The base branch and the labels are read from GitHub now, not taken
         # from the event that started the run. "Re-run" on an old run replays
         # its old event, so a run that passed against a former base, or while
         # size/override was set, would otherwise pass again. Reading the base
         # into a shell variable also keeps a branch name out of the text of
         # the command, where a name like `x$(...)` would be executed.
+        #
+        # One call returns three lines: the base branch, whether the
+        # size/override label is set, and the current head commit. The call
+        # needs the network, so it is tried three times; if it still fails
+        # the step fails and says that this is not a size verdict.
         run: |
-          base="$(gh pr view "$PR_NUMBER" --repo "$GITHUB_REPOSITORY" --json baseRefName --jq .baseRefName)"
-          labels="$(gh pr view "$PR_NUMBER" --repo "$GITHUB_REPOSITORY" --json labels --jq '.labels[].name')"
-          override=false
-          if grep -qxF 'size/override' <<< "$labels"; then
-            override=true
+          info=""
+          for attempt in 1 2 3; do
+            if info="$(gh pr view "$PR_NUMBER" --repo "$GITHUB_REPOSITORY" \
+              --json baseRefName,labels,headRefOid \
+              --jq '.baseRefName, ([.labels[].name] | any(. == "size/override")), .headRefOid')"; then
+              break
+            fi
+            echo "GitHub API call failed (attempt $attempt of 3)" >&2
+            info=""
+            sleep 5
+          done
+          { read -r base; read -r override; read -r head; } <<< "$info" || true
+          if [ -z "$base" ] || [ -z "$override" ] || [ -z "$head" ]; then
+            echo "error: could not read the pull request from GitHub. This is an API error, not a size verdict; re-run the job." >&2
+            exit 1
           fi
-          echo "base branch: $base, size/override: $override"
+          echo "base branch: $base, size/override: $override, measured commit: $MEASURED_SHA"
+          if [ "$head" != "$MEASURED_SHA" ]; then
+            echo "note: the pull request has moved on to $head; this run measures an older commit and does not count for the current head"
+          fi
           PR_SIZE_OVERRIDE="$override" scripts/ci/pr-size.sh "origin/$base"
