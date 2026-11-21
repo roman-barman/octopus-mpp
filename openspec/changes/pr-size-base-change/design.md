@@ -9,7 +9,7 @@
 - Goal: after a base change, the `pr-size` check shows a verdict for the new base without anyone pushing.
 - Goal: the documented local command gives the number CI gives, for a stacked pull request too.
 - Non-goal: changing how the size is measured, the limits, the exclusions, or the override label.
-- Non-goal: making the six `ci.yml` gates re-run on a base change. They do depend on the base (the default checkout of a `pull_request` run is the merge of head into base), so this is a gap left open on purpose: six jobs on every body edit is a cost the owner should weigh separately, and the rebase after a parent merges re-runs them anyway.
+- Non-goal: making the six `ci.yml` gates re-run on a base change. They do depend on the base (the default checkout of a `pull_request` run is the merge of head into base), so this is a gap left open on purpose, by the owner's decision of 2026-11-21: six jobs on every body edit cost more than the gap, and the rebase after a parent merges re-runs them anyway.
 
 ## Decisions
 
@@ -33,7 +33,18 @@ The repository merges by rebase, so the parent's commits land on `main` with new
 
 The workflow gets `concurrency: { group: pr-size-${{ github.event.pull_request.number }}, cancel-in-progress: true }`. Without it a push followed at once by a retarget starts two overlapping runs, one per base, and which of them the required check ends up showing depends on which finishes last. With it the run that entered the group earlier is cancelled, so the run queued last decides; that is normally the newest event, which carries the current base and the current labels. GitHub does not promise to queue two events of the same second in order, so this narrows the race, it does not remove it. A cancelled run leaves the check unsatisfied only until its successor finishes, a few seconds later.
 
+### D5. The job reads the base branch and the labels from GitHub when it runs
+
+The measuring step calls `gh pr view <number> --json baseRefName,labels` and uses the answer, instead of `github.base_ref` and `github.event.pull_request.labels` from the event payload. The workflow gets the permission `pull-requests: read` for that call; `gh` is preinstalled on the runner and authenticates with the job's token.
+
+Two defects found in the review of the implementation go away together. First, "Re-run" on an old run replays its old payload on the same head commit: a run that passed against a former base, or while `size/override` was set, would pass again and become the newest `pr-size` check. Reading the current state makes a re-run measure the pull request as it is. The label half of this defect is older than this change. Second, `${{ github.base_ref }}` was interpolated into the text of the shell command, so a branch named `x$(...)` would have run that substitution on the runner; the name now arrives as command output in a shell variable and is only ever expanded inside quotes. The pull request number, an integer, is passed through `env`.
+
+Alternative considered: keep the payload and document that old runs must not be re-run. Rejected: a required check that a single click on the wrong run can turn green is not a check.
+
+The head commit is still taken from the payload (`github.event.pull_request.head.sha`). A re-run of an old run therefore measures an old commit, and its result is attached to that commit, not to the current head, so it cannot satisfy the required check of a newer push.
+
 ## Risks / Trade-offs
 
 - [GitHub retargets a stacked pull request automatically when its parent is merged and the parent's branch deleted; whether that sends `edited` is not documented clearly] → It cannot be probed with throwaway pull requests, because it needs a real merge (deleting an unmerged base branch closes the pull request instead). Task 1.4 observes it on this change itself: the implementation pull request is opened stacked on the `spec/pr-size-base-change` branch, and the owner's merge of the spec pull request is the retarget. If no run starts, the requirement is narrowed to manual base changes before the change is archived; the rebase the agent rules require after a parent merges re-runs the gate either way.
+- [The label scenario of D5 cannot be probed by an agent: agents never add `size/override`] → Task 1.6 probes the base half by re-running a real old run; the label half goes through the same `gh pr view` call and the same variable, and the owner can toggle the label on a throwaway pull request to see it.
 - [Extra runs on body edits] → A few seconds each; accepted in D1.
