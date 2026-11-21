@@ -24,7 +24,8 @@ permissions:
 
 env:
   CARGO_TERM_COLOR: always
-  # Tool versions pinned for CI and the developer alike (design D5).
+  # Tool versions pinned for CI and the developer alike; see D5 of
+  # openspec/changes/archive/2026-11-21-quality-gates/design.md.
   CARGO_DENY_VERSION: 0.20.2
 
 jobs:
