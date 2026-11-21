@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
 # Shared helpers for the git hooks in this directory. Sourced, not run.
-# See openspec/specs/git-hooks/spec.md (or the quality-gates change until it
-# is archived) for the rules the hooks enforce.
+# See openspec/specs/git-hooks/spec.md for the rules the hooks enforce.
 
 # refuse <rule> [detail ...]: explain why the hook refuses and exit 1.
 # The first argument is the rule in one line; the rest are printed indented,
