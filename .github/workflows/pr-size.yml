@@ -28,6 +28,9 @@ concurrency:
 
 permissions:
   contents: read
+  # The measuring step asks GitHub for the pull request's current base
+  # branch and labels.
+  pull-requests: read
 
 jobs:
   pr-size:
@@ -40,7 +43,7 @@ jobs:
           # measurement is exactly what the author pushed and does not move
           # when main changes underneath the PR.
           ref: ${{ github.event.pull_request.head.sha }}
-          # Full history of every branch, which includes origin/<base_ref>
+          # Full history of every branch, which includes the base branch
           # that the gate diffs against.
           fetch-depth: 0
 
@@ -49,5 +52,20 @@ jobs:
 
       - name: Measure the pull request
         env:
-          PR_SIZE_OVERRIDE: ${{ contains(github.event.pull_request.labels.*.name, 'size/override') }}
-        run: scripts/ci/pr-size.sh "origin/${{ github.base_ref }}"
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        # The base branch and the labels are read from GitHub now, not taken
+        # from the event that started the run. "Re-run" on an old run replays
+        # its old event, so a run that passed against a former base, or while
+        # size/override was set, would otherwise pass again. Reading the base
+        # into a shell variable also keeps a branch name out of the text of
+        # the command, where a name like `x$(...)` would be executed.
+        run: |
+          base="$(gh pr view "$PR_NUMBER" --repo "$GITHUB_REPOSITORY" --json baseRefName --jq .baseRefName)"
+          labels="$(gh pr view "$PR_NUMBER" --repo "$GITHUB_REPOSITORY" --json labels --jq '.labels[].name')"
+          override=false
+          if grep -qxF 'size/override' <<< "$labels"; then
+            override=true
+          fi
+          echo "base branch: $base, size/override: $override"
+          PR_SIZE_OVERRIDE="$override" scripts/ci/pr-size.sh "origin/$base"
