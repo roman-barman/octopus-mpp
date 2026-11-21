@@ -3,7 +3,7 @@
 ## MODIFIED Requirements
 
 ### Requirement: One required check per gate
-The CI SHALL run on every pull request, whatever its base branch, and on every push to `main`, with one job per gate, named `fmt`, `clippy`, `test`, `doc`, `deny`, and `deps`, so that each job name can be a required status check and a failure names the gate that failed. The repository ruleset SHALL require all six checks for pull requests targeting `main`.
+The CI SHALL run on every pull request, whatever its base branch, and on every push to `main`, with one job per gate, named `fmt`, `clippy`, `test`, `doc`, `deny`, and `deps`, so that each job name can be a required status check and a failure names the gate that failed. The repository ruleset SHALL require these six checks for pull requests targeting `main`.
 
 #### Scenario: One gate fails
 - **WHEN** a pull request targeting `main` fails only the `doc` gate
