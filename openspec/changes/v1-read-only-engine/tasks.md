@@ -105,6 +105,8 @@ Every pull request is limited to 500 changed lines and 20 files (`pr-size-gate`)
 
 ## 9. Delta Lake
 
+Before starting this group, stop and ask the owner how Delta scans reach executors (design D8 and Open Questions: delta-rs 1.1 has no physical codec for `DeltaScanExec`); tasks 9.2 and 9.3 are revised by that decision.
+
 - [ ] 9.1 Add `deltalake` dependency; implement Delta `TableDef` → a `DeltaScan` provider (`DeltaTable::table_provider()`) (latest version, or version pinned via `OPTIONS (version = 'N')`) in `octopus-catalog` with storage options from `[storage.s3]`; verify a unit test loads a local Delta fixture at latest and at a pinned version
 - [ ] 9.2 Add the Delta branch to `OctopusLogicalCodec`/`OctopusPhysicalCodec` in `octopus-codec` (Delta first, Ballista default fallback), constructed with the `[storage.s3]` options; the binaries already install them (3.1, 3.2); verify a codec round-trip unit test for a Delta scan plan, and record in `docs/delta.md` whether executor-side decoding opens the Delta log (design D8)
 - [ ] 9.3 Write Delta copies of all eight TPC-H tables into MinIO in the harness (delta-rs writer), including one partitioned table and one with deletion vectors and column mapping; verify tables register by location and `DESCRIBE` matches the log schema
