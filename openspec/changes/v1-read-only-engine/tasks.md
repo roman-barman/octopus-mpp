@@ -22,7 +22,7 @@ Every pull request is limited to 500 changed lines and 20 files (`pr-size-gate`)
 
 - [x] 1.1 Add the Cargo workspace and `rust-toolchain.toml` to the existing repository (git, `README.md`, `.gitignore`, `LICENSE`, and the `pr-size` CI check already exist), with `octopus-config` as the first member so that the workspace has something to build; verify `cargo build` of the workspace succeeds
 - [x] 1.2 **[split]** Create the remaining crates `octopus-storage`, `octopus-catalog`, `octopus-auth`, `octopus-session`, `octopus-gateway`, `octopus-codec`, `octopus-scheduler`, `octopus-executor` with README stubs stating each crate's single responsibility (three files per crate, `src/lib.rs` for libraries and `src/main.rs` for binaries; two PRs: the five libraries, then the `octopus-codec` library and the two binaries); verify `cargo build --workspace`
-- [ ] 1.3 Pin workspace dependencies (ballista 55.x crates, datafusion 55, arrow 59, deltalake 2.x, object_store, axum, tonic, rusqlite, tracing); verify `cargo tree` shows one DataFusion and one Arrow version
+- [ ] 1.3 Pin workspace dependencies (ballista 55.x crates, datafusion 55, arrow 59, deltalake 1.1.x, object_store, axum, tonic, rusqlite, tracing); update the dependency table in `README.md` (it says delta-rs 2.x); verify `cargo tree` shows one DataFusion and one Arrow version
 - [x] 1.4 Delivered by the `quality-gates` change (`ci.yml` with `fmt`, `clippy`, `test`, `doc`, `deny`, `deps` alongside the existing `pr-size` workflow); check when that change's CI workflow is merged
 - [ ] 1.5 Write `docs/architecture.md` skeleton (components, ports table, query lifecycle placeholder) and `docs/adr/0001-ballista-as-dependency.md`, `0002-workspace-layout.md` (including the `octopus-codec` crate and the rule that the executor links only config, storage, and codec); verify they are linked from README
 
@@ -105,7 +105,7 @@ Every pull request is limited to 500 changed lines and 20 files (`pr-size-gate`)
 
 ## 9. Delta Lake
 
-- [ ] 9.1 Add `deltalake` dependency; implement Delta `TableDef` → `DeltaTableProvider` (latest version, or version pinned via `OPTIONS (version = 'N')`) in `octopus-catalog` with storage options from `[storage.s3]`; verify a unit test loads a local Delta fixture at latest and at a pinned version
+- [ ] 9.1 Add `deltalake` dependency; implement Delta `TableDef` → a `DeltaScan` provider (`DeltaTable::table_provider()`) (latest version, or version pinned via `OPTIONS (version = 'N')`) in `octopus-catalog` with storage options from `[storage.s3]`; verify a unit test loads a local Delta fixture at latest and at a pinned version
 - [ ] 9.2 Add the Delta branch to `OctopusLogicalCodec`/`OctopusPhysicalCodec` in `octopus-codec` (Delta first, Ballista default fallback), constructed with the `[storage.s3]` options; the binaries already install them (3.1, 3.2); verify a codec round-trip unit test for a Delta scan plan, and record in `docs/delta.md` whether executor-side decoding opens the Delta log (design D8)
 - [ ] 9.3 Write Delta copies of all eight TPC-H tables into MinIO in the harness (delta-rs writer), including one partitioned table and one with deletion vectors and column mapping; verify tables register by location and `DESCRIBE` matches the log schema
 - [ ] 9.4 Run the 22 TPC-H queries over the Delta tables; verify results equal the Parquet results
